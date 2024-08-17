@@ -1,5 +1,7 @@
 # Home
 
+![demo image](/img/gopher.png)
+
 ## Links
 
 * [Page One](/page1)
