@@ -46,7 +46,7 @@ func (h *Html) Gen(
 			doc,
 			html.NewRenderer(
 				html.RendererOptions{
-					Flags: html.CommonFlags | html.HrefTargetBlank,
+					Flags: html.CommonFlags | html.HrefTargetBlank | html.LazyLoadImages,
 				},
 			),
 		),
@@ -105,12 +105,13 @@ func walkRefs(
 			refs = append(refs, ref)
 
 		case *ast.HTMLSpan:
-			htmlRefs, err := walkHtmlRefs(relPath, v.Literal)
+			htmlBody, htmlRefs, err := walkHtmlRefs(relPath, v.Literal)
 			if err != nil {
 				walkErr = err
 				return ast.Terminate
 			}
 
+			v.Literal = htmlBody
 			refs = append(refs, htmlRefs...)
 		}
 
@@ -127,16 +128,18 @@ func walkRefs(
 func walkHtmlRefs(
 	relPath string,
 	data []byte,
-) ([]string, error) {
+) ([]byte, []string, error) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(data))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var refs []string
 
 	doc.Find("img").Each(func(_ int, sel *goquery.Selection) {
 		if ref, exists := sel.Attr("src"); exists {
+			sel.SetAttr("loading", "lazy")
+
 			if isExternalLink(ref) {
 				return
 			}
@@ -149,7 +152,12 @@ func walkHtmlRefs(
 		}
 	})
 
-	return refs, nil
+	var b bytes.Buffer
+	if err := goquery.Render(&b, doc.Selection); err != nil {
+		return nil, nil, err
+	}
+
+	return b.Bytes(), refs, nil
 }
 
 func isExternalLink(ref string) bool {
