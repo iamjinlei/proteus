@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,8 +42,7 @@ func main() {
 
 	srcDir := filepath.Clean(*srcFlag)
 
-	configPath := filepath.Join(srcDir, "config.yaml")
-	cfg, err := loadConfig(srcDir, configPath)
+	cfg, err := loadConfig(srcDir, filepath.Join(srcDir, "config.yaml"))
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
@@ -52,59 +50,60 @@ func main() {
 
 	if *genFlag {
 		dstDir := filepath.Clean(*dstFlag)
-		entryPath := filepath.Join(srcDir, cfg.Entry)
 
 		g := gen.NewHtml(htmlSuffix)
-		if err := filepath.Walk(
-			srcDir,
-			func(path string, fi fs.FileInfo, err error) error {
-				fmt.Printf("seen path %v, err %v\n", path, err)
-				if err != nil {
-					return err
-				}
 
-				if path == configPath {
-					return nil
-				}
+		refQueue := []string{
+			cfg.Entry,
+			cfg.Favicon,
+		}
+		dirSeen := map[string]bool{}
+		for len(refQueue) > 0 {
+			relPath := refQueue[0]
+			refQueue = refQueue[1:]
+			isMarkdown := strings.HasSuffix(relPath, mdSuffix)
 
-				isHidden := isHidden(path)
-				if fi.IsDir() {
-					if isHidden {
-						return filepath.SkipDir
-					}
-
-					path = strings.Replace(path, srcDir, dstDir, 1)
-					return os.MkdirAll(path, dirPermMode)
-				} else if isHidden {
-					return nil
-				}
-
-				data, err := os.ReadFile(path)
-				if err != nil {
-					return err
-				}
-
-				if strings.HasSuffix(path, mdSuffix) {
-					fmt.Printf("seen md file %v\n", path)
-
-					if path == entryPath {
-						path = filepath.Join(dstDir, "index.html")
-					} else {
-						path = path + htmlSuffix
-						path = strings.Replace(path, srcDir, dstDir, 1)
-					}
-
-					html := g.Gen(data)
-					return os.WriteFile(path, html, filePermMode)
+			src := filepath.Join(srcDir, relPath)
+			dst := filepath.Join(dstDir, relPath)
+			if isMarkdown {
+				if relPath == cfg.Entry {
+					dst = filepath.Join(dstDir, "index.html")
 				} else {
-					fmt.Printf("copy file %v\n", path)
-					path = strings.Replace(path, srcDir, dstDir, 1)
-					return os.WriteFile(path, data, filePermMode)
+					dst += htmlSuffix
 				}
-			},
-		); err != nil {
-			fmt.Printf("Error generating HTML files: %v\n", err)
-			return
+			}
+
+			dstDir := filepath.Dir(dst)
+			if !dirSeen[dstDir] {
+				if err := os.MkdirAll(dstDir, dirPermMode); err != nil {
+					fmt.Printf("Error creating directory %v: %v\n", dstDir, err)
+					return
+				}
+				dirSeen[dstDir] = true
+			}
+
+			data, err := os.ReadFile(src)
+			if err != nil {
+				fmt.Printf("Error reading source file %v: %v\n", src, err)
+				return
+			}
+
+			if isMarkdown {
+				relDir := filepath.Dir(relPath)
+				doc, err := g.Gen(relDir, data)
+				if err != nil {
+					fmt.Printf("Error generating HTML doc: %v\n", err)
+					return
+				}
+
+				data = doc.Html
+				refQueue = append(refQueue, doc.Refs...)
+			}
+
+			if err := os.WriteFile(dst, data, filePermMode); err != nil {
+				fmt.Printf("Error writing destination file %v: %v\n", src, err)
+				return
+			}
 		}
 	} else {
 		g := gen.NewHtml(htmlSuffix)
@@ -145,9 +144,13 @@ func main() {
 			if directCopy {
 				w.Write(data)
 			} else {
-				html := g.Gen(data)
-				fmt.Printf("Transformed, %v bytes\n", len(html))
-				w.Write(html)
+				doc, err := g.Gen("", data)
+				if err != nil {
+					w.Write([]byte(fmt.Sprintf("Error generating html: %v", err)))
+				} else {
+					fmt.Printf("Transformed, %v bytes\n", len(doc.Html))
+					w.Write(doc.Html)
+				}
 			}
 		})
 
