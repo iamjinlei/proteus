@@ -31,25 +31,28 @@ func (h *Html) Gen(
 	relPath string,
 	src []byte,
 ) (*Doc, error) {
-	extensions := parser.CommonExtensions |
-		parser.AutoHeadingIDs |
-		parser.NoEmptyLineBeforeBlock
-	p := parser.NewWithExtensions(extensions)
+	p := parser.NewWithExtensions(
+		parser.CommonExtensions |
+			parser.AutoHeadingIDs |
+			parser.NoEmptyLineBeforeBlock,
+	)
 	doc := p.Parse(src)
 	refs, err := walkRefs(doc, relPath, h.interalHtmlRefSuffix)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Doc{
-		Html: markdown.Render(
-			doc,
-			html.NewRenderer(
-				html.RendererOptions{
-					Flags: html.CommonFlags | html.HrefTargetBlank | html.LazyLoadImages,
-				},
-			),
+	body := markdown.Render(
+		doc,
+		html.NewRenderer(
+			html.RendererOptions{
+				Flags: html.CompletePage | html.CommonFlags | html.HrefTargetBlank | html.LazyLoadImages,
+			},
 		),
+	)
+
+	return &Doc{
+		Html: bytes.Replace(defaultLayout, placeHolder, body, 1),
 		Refs: refs,
 	}, nil
 }
@@ -135,14 +138,15 @@ func walkHtmlRefs(
 	}
 
 	var refs []string
-
+	hasUpdate := false
 	doc.Find("img").Each(func(_ int, sel *goquery.Selection) {
 		if ref, exists := sel.Attr("src"); exists {
-			sel.SetAttr("loading", "lazy")
-
 			if isExternalLink(ref) {
 				return
 			}
+
+			sel.SetAttr("loading", "lazy")
+			hasUpdate = true
 
 			if !strings.HasPrefix(ref, relPath) {
 				ref = filepath.Join(relPath, ref)
@@ -152,12 +156,24 @@ func walkHtmlRefs(
 		}
 	})
 
-	var b bytes.Buffer
-	if err := goquery.Render(&b, doc.Selection); err != nil {
-		return nil, nil, err
+	html := data
+	if hasUpdate {
+		// NOTE(kmax): be careful, <span> and </span> are treated as
+		// different ast.Node. So we only parse <span>, but doc.Html
+		// would complete the closing </span>. If we don't handle it
+		// properly, it may end up with 2 </span>. Luckily, for now
+		// <img> does not have the closing </img> pair.
+		htmlStr, err := doc.Html()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		htmlStr = strings.Replace(htmlStr, "<html><head></head><body>", "", 1)
+		htmlStr = strings.Replace(htmlStr, "</body></html>", "", 1)
+		html = []byte(htmlStr)
 	}
 
-	return b.Bytes(), refs, nil
+	return html, refs, nil
 }
 
 func isExternalLink(ref string) bool {
