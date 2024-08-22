@@ -48,10 +48,10 @@ func main() {
 		return
 	}
 
+	g := gen.NewHtml(gen.DefaultConfig(htmlSuffix))
+
 	if *genFlag {
 		dstDir := filepath.Clean(*dstFlag)
-
-		g := gen.NewHtml(htmlSuffix)
 
 		refQueue := []string{
 			cfg.Entry,
@@ -106,8 +106,6 @@ func main() {
 			}
 		}
 	} else {
-		g := gen.NewHtml(htmlSuffix)
-
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			path := r.URL.Path
 			fmt.Printf("Path = %v\n", r.URL.Path)

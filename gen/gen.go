@@ -12,13 +12,27 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 )
 
-type Html struct {
-	interalHtmlRefSuffix string
+type Config struct {
+	InteralHtmlRefSuffix string
+	LazyImageLoading     bool
 }
 
-func NewHtml(interalHtmlRefSuffix string) *Html {
+func DefaultConfig(
+	internalHtmlRefSuffix string,
+) Config {
+	return Config{
+		InteralHtmlRefSuffix: internalHtmlRefSuffix,
+		LazyImageLoading:     true,
+	}
+}
+
+type Html struct {
+	cfg Config
+}
+
+func NewHtml(cfg Config) *Html {
 	return &Html{
-		interalHtmlRefSuffix: interalHtmlRefSuffix,
+		cfg: cfg,
 	}
 }
 
@@ -37,16 +51,25 @@ func (h *Html) Gen(
 			parser.NoEmptyLineBeforeBlock,
 	)
 	doc := p.Parse(src)
-	refs, err := walkRefs(doc, relPath, h.interalHtmlRefSuffix)
+	refs, err := walkRefs(
+		doc,
+		relPath,
+		h.cfg.InteralHtmlRefSuffix,
+		h.cfg.LazyImageLoading,
+	)
 	if err != nil {
 		return nil, err
 	}
 
+	flags := html.CommonFlags | html.HrefTargetBlank
+	if h.cfg.LazyImageLoading {
+		flags |= html.LazyLoadImages
+	}
 	body := markdown.Render(
 		doc,
 		html.NewRenderer(
 			html.RendererOptions{
-				Flags: html.CompletePage | html.CommonFlags | html.HrefTargetBlank | html.LazyLoadImages,
+				Flags: flags,
 			},
 		),
 	)
@@ -61,6 +84,7 @@ func walkRefs(
 	doc ast.Node,
 	relPath string,
 	interalHtmlRefSuffix string,
+	lazyImgLoading bool,
 ) ([]string, error) {
 	var refs []string
 	var walkErr error
@@ -108,7 +132,7 @@ func walkRefs(
 			refs = append(refs, ref)
 
 		case *ast.HTMLSpan:
-			htmlBody, htmlRefs, err := walkHtmlRefs(relPath, v.Literal)
+			htmlBody, htmlRefs, err := walkHtmlRefs(relPath, v.Literal, lazyImgLoading)
 			if err != nil {
 				walkErr = err
 				return ast.Terminate
@@ -131,6 +155,7 @@ func walkRefs(
 func walkHtmlRefs(
 	relPath string,
 	data []byte,
+	lazyImgLoading bool,
 ) ([]byte, []string, error) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(data))
 	if err != nil {
@@ -145,8 +170,10 @@ func walkHtmlRefs(
 				return
 			}
 
-			sel.SetAttr("loading", "lazy")
-			hasUpdate = true
+			if lazyImgLoading {
+				sel.SetAttr("loading", "lazy")
+				hasUpdate = true
+			}
 
 			if !strings.HasPrefix(ref, relPath) {
 				ref = filepath.Join(relPath, ref)
