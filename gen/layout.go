@@ -2,7 +2,7 @@ package gen
 
 var (
 	placeHolder   = []byte("$$__CONTENT__$$")
-	defaultLayout = []byte(`
+	defaultLayout = []byte(fillColors(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -20,8 +20,8 @@ var (
 	.row .col-center {
 		padding-left: 2em;
 		padding-right: 2em;
-		border-left: 1px solid #F0F0F0;
-		border-right: 1px solid #F0F0F0;
+		border-left: 1px solid #LightGray;
+		border-right: 1px solid #LightGray;
   		height: 100%;
 	}
 </style>
@@ -38,5 +38,5 @@ var (
 	</div>
 </body>
 </html>
-`)
+`))
 )

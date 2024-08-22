@@ -90,7 +90,7 @@ func main() {
 
 			if isMarkdown {
 				relDir := filepath.Dir(relPath)
-				doc, err := g.Gen(relDir, data)
+				doc, err := g.Gen(data, relDir)
 				if err != nil {
 					fmt.Printf("Error generating HTML doc: %v\n", err)
 					return
@@ -142,7 +142,7 @@ func main() {
 			if directCopy {
 				w.Write(data)
 			} else {
-				doc, err := g.Gen("", data)
+				doc, err := g.Gen(data, "")
 				if err != nil {
 					w.Write([]byte(fmt.Sprintf("Error generating html: %v", err)))
 				} else {
