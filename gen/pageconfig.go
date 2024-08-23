@@ -52,6 +52,10 @@ func (c *pageConfig) header() []byte {
 	return []byte(fmt.Sprintf("<img src=\"%s\" style=\"max-width:100%%;\">", c.m["banner"]))
 }
 
+func (c *pageConfig) bannerRef() string {
+	return c.m["banner"]
+}
+
 func (c *pageConfig) footer() []byte {
 	return []byte(`
 	<div style="text-align: center;">

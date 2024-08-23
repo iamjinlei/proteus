@@ -65,16 +65,18 @@ func main() {
 
 			src := filepath.Join(srcDir, relPath)
 			dst := filepath.Join(dstDir, relPath)
-			if isMarkdown {
-				switch relPath {
-				case cfg.Entry:
-					dst = filepath.Join(dstDir, "index.html")
-				case cfg.Favicon:
-					dst = filepath.Join(dstDir, "favicon.ico")
-				default:
+			switch relPath {
+			case cfg.Entry:
+				dst = filepath.Join(dstDir, "index.html")
+			case cfg.Favicon:
+				dst = filepath.Join(dstDir, "favicon.ico")
+			default:
+				if isMarkdown {
 					dst += htmlSuffix
 				}
 			}
+
+			fmt.Printf("%v, %v -> %v\n", relPath, src, dst)
 
 			dstDir := filepath.Dir(dst)
 			if !dirSeen[dstDir] {

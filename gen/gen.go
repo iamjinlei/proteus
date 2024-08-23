@@ -63,6 +63,10 @@ func (h *Html) Gen(
 		return nil, err
 	}
 
+	if cfg.bannerRef() != "" {
+		refs = append(refs, cfg.bannerRef())
+	}
+
 	return &Doc{
 		Html: fillPageTemplate(cfg.header(), body, cfg.footer()),
 		Refs: refs,
