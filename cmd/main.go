@@ -66,9 +66,12 @@ func main() {
 			src := filepath.Join(srcDir, relPath)
 			dst := filepath.Join(dstDir, relPath)
 			if isMarkdown {
-				if relPath == cfg.Entry {
+				switch relPath {
+				case cfg.Entry:
 					dst = filepath.Join(dstDir, "index.html")
-				} else {
+				case cfg.Favicon:
+					dst = filepath.Join(dstDir, "favicon.ico")
+				default:
 					dst += htmlSuffix
 				}
 			}
@@ -109,8 +112,11 @@ func main() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			path := r.URL.Path
 			fmt.Printf("Path = %v\n", r.URL.Path)
-			if path == "" || path == "/" {
+			switch path {
+			case "", "/", "/index.html":
 				path = filepath.Join("/", cfg.Entry)
+			case "/favicon.ico":
+				path = filepath.Join("/", cfg.Favicon)
 			}
 
 			directCopy := true

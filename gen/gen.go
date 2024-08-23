@@ -1,7 +1,6 @@
 package gen
 
 import (
-	"bytes"
 	"fmt"
 )
 
@@ -49,18 +48,23 @@ func (h *Html) Gen(
 	src []byte,
 	relDir string,
 ) (*Doc, error) {
-	doc, refs, err := parse(src, relDir, h.cfg)
+	cfg, content, err := extractPageConfig(src)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := render(doc, h.cfg)
+	doc, refs, err := parsePage(content, relDir, h.cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := renderPage(doc, h.cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Doc{
-		Html: bytes.Replace(defaultLayout, placeHolder, body, 1),
+		Html: fillPageTemplate(cfg.header(), body, cfg.footer()),
 		Refs: refs,
 	}, nil
 }

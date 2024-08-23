@@ -12,7 +12,7 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 )
 
-func parse(
+func parsePage(
 	src []byte,
 	relDir string,
 	cfg Config,

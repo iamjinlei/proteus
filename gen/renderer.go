@@ -12,7 +12,7 @@ import (
 	"github.com/gomarkdown/markdown/html"
 )
 
-func render(doc ast.Node, cfg Config) ([]byte, error) {
+func renderPage(doc ast.Node, cfg Config) ([]byte, error) {
 	flags := html.CommonFlags | html.HrefTargetBlank
 	if cfg.LazyImageLoading {
 		flags |= html.LazyLoadImages
