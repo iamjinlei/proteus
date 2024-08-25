@@ -3,6 +3,10 @@ package gen
 import "bytes"
 
 var (
+	centerColWidth    = "60em"
+	imgBannerHeight   = "10em"
+	emptyBannerHeight = "2em"
+
 	defaultLayout = []byte(fillColors(`
 <!DOCTYPE html>
 <html>
@@ -11,22 +15,26 @@ var (
 <style>
 	.row {
 		display: grid;
-		grid-template-columns: 1fr 60em 1fr;
+		grid-template-columns: 1fr $$__CENTER_COL_WIDTH__$$ 1fr;
 		font-size: 120%;
 	}
-	.row .top-center {
+	.row .header {
+		padding-bottom: 4em;
 	}
-	.row .mid-center {
-		padding-top: 2em;
+	.row .navi {
+		padding-left: 2em;
+		padding-right: 2em;
+	}
+	.row .main {
 		padding-left: 2em;
 		padding-right: 2em;
 		border-left: 1px solid #LightGray;
 		border-right: 1px solid #LightGray;
-		border-bottom: 1px solid #LightGray;
   		height: 100%;
 		min-height: 50em;
 	}
-	.row .bottom-center {
+	.row .footer {
+		margin-top: 4em;
 	}
 </style>
 </head>
@@ -34,7 +42,7 @@ var (
 	<div class="row">
 		<div class="col-left">
 		</div>
-		<div class="top-center">
+		<div class="header">
 			$$__HEADER__$$
 		</div>
 		<div class="col-right">
@@ -43,8 +51,8 @@ var (
 	<div class="row">
 		<div class="col-left">
 		</div>
-		<div class="mid-center">
-			$$__CONTENT__$$
+		<div class="navi">
+			$$__NAVI__$$
 		</div>
 		<div class="col-right">
 		</div>
@@ -52,7 +60,16 @@ var (
 	<div class="row">
 		<div class="col-left">
 		</div>
-		<div class="bottom-center">
+		<div class="main">
+			$$__MAIN__$$
+		</div>
+		<div class="col-right">
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-left">
+		</div>
+		<div class="footer">
 			$$__FOOTER__$$
 		</div>
 		<div class="col-right">
@@ -65,11 +82,14 @@ var (
 
 func fillPageTemplate(
 	header []byte,
-	content []byte,
+	navi []byte,
+	main []byte,
 	footer []byte,
 ) []byte {
 	p := bytes.Replace(defaultLayout, []byte("$$__HEADER__$$"), header, 1)
-	p = bytes.Replace(p, []byte("$$__CONTENT__$$"), content, 1)
+	p = bytes.Replace(p, []byte("$$__NAVI__$$"), navi, 1)
+	p = bytes.Replace(p, []byte("$$__MAIN__$$"), main, 1)
 	p = bytes.Replace(p, []byte("$$__FOOTER__$$"), footer, 1)
+	p = bytes.Replace(p, []byte("$$__CENTER_COL_WIDTH__$$"), []byte(centerColWidth), 1)
 	return p
 }

@@ -68,7 +68,12 @@ func (h *Html) Gen(
 	}
 
 	return &Doc{
-		Html: fillPageTemplate(cfg.header(), body, cfg.footer()),
+		Html: fillPageTemplate(
+			cfg.header(),
+			cfg.navi(),
+			body,
+			cfg.footer(),
+		),
 		Refs: refs,
 	}, nil
 }
