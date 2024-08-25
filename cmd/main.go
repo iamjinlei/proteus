@@ -55,8 +55,11 @@ func main() {
 
 		refQueue := []string{
 			cfg.Entry,
-			cfg.Favicon,
 		}
+		for path, _ := range cfg.Assets {
+			refQueue = append(refQueue, path)
+		}
+
 		dirSeen := map[string]bool{}
 		for len(refQueue) > 0 {
 			relPath := refQueue[0]
@@ -68,9 +71,12 @@ func main() {
 			switch relPath {
 			case cfg.Entry:
 				dst = filepath.Join(dstDir, "index.html")
-			case cfg.Favicon:
-				dst = filepath.Join(dstDir, "favicon.ico")
 			default:
+				if v := cfg.Assets[relPath]; v != "" {
+					dst = filepath.Join(dstDir, v)
+					isMarkdown = false
+				}
+
 				if isMarkdown {
 					dst += htmlSuffix
 				}
@@ -111,14 +117,21 @@ func main() {
 			}
 		}
 	} else {
+		rassets := map[string]string{}
+		for from, to := range cfg.Assets {
+			rassets[to] = from
+		}
+
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			path := r.URL.Path
 			fmt.Printf("Path = %v\n", r.URL.Path)
 			switch path {
 			case "", "/", "/index.html":
-				path = filepath.Join("/", cfg.Entry)
-			case "/favicon.ico":
-				path = filepath.Join("/", cfg.Favicon)
+				path = cfg.Entry
+			default:
+				if v := rassets[path]; v != "" {
+					path = v
+				}
 			}
 
 			directCopy := true
@@ -192,6 +205,13 @@ func loadConfig(srcDir, path string) (Config, error) {
 	if !fileExists(filepath.Join(srcDir, cfg.Entry)) {
 		return Config{}, errors.New("entry point undefined")
 	}
+
+	cfg.Entry = filepath.Join("/", cfg.Entry)
+	assets := map[string]string{}
+	for from, to := range cfg.Assets {
+		assets[filepath.Join("/", from)] = filepath.Join("/", to)
+	}
+	cfg.Assets = assets
 
 	return cfg, nil
 }
