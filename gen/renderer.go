@@ -12,7 +12,7 @@ import (
 	"github.com/gomarkdown/markdown/html"
 )
 
-func renderPage(doc ast.Node, cfg Config) ([]byte, error) {
+func renderPage(page *page, cfg Config) ([]byte, error) {
 	flags := html.CommonFlags | html.HrefTargetBlank
 	if cfg.LazyImageLoading {
 		flags |= html.LazyLoadImages
@@ -30,7 +30,7 @@ func renderPage(doc ast.Node, cfg Config) ([]byte, error) {
 	)
 	rh.r = r
 
-	data := markdown.Render(doc, r)
+	data := markdown.Render(page.root, r)
 	if rh.err != nil {
 		return nil, rh.err
 	}

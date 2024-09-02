@@ -16,47 +16,55 @@ func parsePage(
 	src []byte,
 	relDir string,
 	cfg Config,
-) (ast.Node, []string, error) {
+) (*page, error) {
 	p := parser.NewWithExtensions(
 		parser.CommonExtensions |
 			parser.AutoHeadingIDs |
 			parser.NoEmptyLineBeforeBlock,
 	)
-	doc := p.Parse(src)
-	refs, err := walkMarkdownAST(
-		doc,
+	root := p.Parse(src)
+
+	page, err := buildPage(
+		root,
 		relDir,
 		cfg.InteralHtmlRefSuffix,
 		cfg.LazyImageLoading,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return doc, refs, nil
+	return page, nil
 }
 
-func walkMarkdownAST(
-	doc ast.Node,
+func buildPage(
+	root ast.Node,
 	relPath string,
 	interalHtmlRefSuffix string,
 	lazyImgLoading bool,
-) ([]string, error) {
-	var refs []string
+) (*page, error) {
 	var walkErr error
+	// Accumulate references found in the doc.
+	var refs []string
+	// Track headings to build table of contents.
+	ht := newHeadingTracker()
 
-	ast.WalkFunc(doc, func(node ast.Node, entering bool) ast.WalkStatus {
+	ast.WalkFunc(root, func(node ast.Node, entering bool) ast.WalkStatus {
 		if false {
 			name := reflect.TypeOf(node).String()
-			if strings.Contains(name, "ListItem") ||
-				strings.Contains(name, "Text") ||
+			if strings.Contains(name, "Heading") {
+				children := node.(*ast.Heading).Children
+				c0 := children[0].(*ast.Text)
+				fmt.Printf("cc = %v, node = %#v\n", len(children), string(c0.Literal))
+			} else if strings.Contains(name, "Text") ||
+				strings.Contains(name, "ListItem") ||
 				strings.Contains(name, "Paragraph") ||
 				strings.Contains(name, "List") ||
 				strings.Contains(name, "HTMLSpan") ||
 				strings.Contains(name, "Heading") {
 			} else {
 				fmt.Printf("node type = %v, entering %v\n",
-					reflect.TypeOf(node).String(),
+					name,
 					entering,
 				)
 			}
@@ -67,6 +75,13 @@ func walkMarkdownAST(
 		}
 
 		switch v := node.(type) {
+		case *ast.Heading:
+			if len(v.Children) != 1 {
+				break
+			}
+
+			ht.add(v.Level, string(v.Children[0].(*ast.Text).Literal))
+
 		case *ast.Link:
 			ref := string(v.Destination)
 			if isExternalLink(ref) {
@@ -110,7 +125,10 @@ func walkMarkdownAST(
 		return nil, walkErr
 	}
 
-	return refs, nil
+	return &page{
+		root: root,
+		refs: refs,
+	}, nil
 }
 
 func walkHtmlDOMs(

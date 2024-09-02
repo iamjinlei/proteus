@@ -53,16 +53,17 @@ func (h *Html) Gen(
 		return nil, err
 	}
 
-	doc, refs, err := parsePage(content, relDir, h.cfg)
+	page, err := parsePage(content, relDir, h.cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := renderPage(doc, h.cfg)
+	body, err := renderPage(page, h.cfg)
 	if err != nil {
 		return nil, err
 	}
 
+	refs := page.refs
 	if cfg.bannerRef() != "" {
 		refs = append(refs, cfg.bannerRef())
 	}
