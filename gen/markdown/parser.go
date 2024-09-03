@@ -1,4 +1,4 @@
-package gen
+package markdown
 
 import (
 	"bytes"
@@ -12,23 +12,24 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 )
 
-type markdownPage struct {
-	root     ast.Node
-	refs     []string
-	headings []*heading
+type Doc struct {
+	Root     ast.Node
+	Refs     []string
+	Headings []*Heading
 }
 
-type heading struct {
-	level    int
-	name     string
-	children []*heading
+type Heading struct {
+	Level    int
+	Name     string
+	Children []*Heading
 }
 
-func parseMarkdown(
+func Parse(
 	src []byte,
 	relDir string,
-	cfg Config,
-) (*markdownPage, error) {
+	interalHtmlRefSuffix string,
+	lazyImageLoading bool,
+) (*Doc, error) {
 	p := parser.NewWithExtensions(
 		parser.CommonExtensions |
 			parser.AutoHeadingIDs |
@@ -36,25 +37,25 @@ func parseMarkdown(
 	)
 	root := p.Parse(src)
 
-	page, err := buildMarkdownPage(
+	c, err := buildMarkdownContent(
 		root,
 		relDir,
-		cfg.InteralHtmlRefSuffix,
-		cfg.LazyImageLoading,
+		interalHtmlRefSuffix,
+		lazyImageLoading,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return page, nil
+	return c, nil
 }
 
-func buildMarkdownPage(
+func buildMarkdownContent(
 	root ast.Node,
 	relPath string,
 	interalHtmlRefSuffix string,
 	lazyImgLoading bool,
-) (*markdownPage, error) {
+) (*Doc, error) {
 	var walkErr error
 	// Accumulate references found in the doc.
 	var refs []string
@@ -137,10 +138,10 @@ func buildMarkdownPage(
 		return nil, walkErr
 	}
 
-	return &markdownPage{
-		root:     root,
-		refs:     refs,
-		headings: ht.getHeadings(),
+	return &Doc{
+		Root:     root,
+		Refs:     refs,
+		Headings: ht.getHeadings(),
 	}, nil
 }
 

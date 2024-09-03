@@ -1,13 +1,11 @@
 package gen
 
-import "bytes"
-
 var (
 	centerColWidth    = "60em"
 	imgBannerHeight   = "10em"
 	emptyBannerHeight = "2em"
 
-	defaultLayout = []byte(fillColors(`
+	defaultLayout = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,7 +13,7 @@ var (
 <style>
 	.row {
 		display: grid;
-		grid-template-columns: 1fr $$__CENTER_COL_WIDTH__$$ 1fr;
+		grid-template-columns: 1fr {{ .Dimensions.CenterColWidth }} 1fr;
 		font-size: 120%;
 	}
 	.row .header {
@@ -28,8 +26,8 @@ var (
 	.row .main {
 		padding-left: 2em;
 		padding-right: 2em;
-		border-left: 1px solid #LightGray;
-		border-right: 1px solid #LightGray;
+		border-left: 1px solid {{ .Palette.LightGray }};
+		border-right: 1px solid {{ .Palette.LightGray }};
   		height: 100%;
 		min-height: 50em;
 	}
@@ -43,7 +41,7 @@ var (
 		<div class="col-left">
 		</div>
 		<div class="header">
-			$$__HEADER__$$
+			{{ .Content.Header }}
 		</div>
 		<div class="col-right">
 		</div>
@@ -52,7 +50,7 @@ var (
 		<div class="col-left">
 		</div>
 		<div class="navi">
-			$$__NAVI__$$
+			{{ .Content.Navi }}
 		</div>
 		<div class="col-right">
 		</div>
@@ -61,7 +59,7 @@ var (
 		<div class="col-left">
 		</div>
 		<div class="main">
-			$$__MAIN__$$
+			{{ .Content.Main }}
 		</div>
 		<div class="col-right">
 		</div>
@@ -70,26 +68,12 @@ var (
 		<div class="col-left">
 		</div>
 		<div class="footer">
-			$$__FOOTER__$$
+			{{ .Content.Footer }}
 		</div>
 		<div class="col-right">
 		</div>
 	</div>
 </body>
 </html>
-`))
+`
 )
-
-func fillPageTemplate(
-	header []byte,
-	navi []byte,
-	main []byte,
-	footer []byte,
-) []byte {
-	p := bytes.Replace(defaultLayout, []byte("$$__HEADER__$$"), header, 1)
-	p = bytes.Replace(p, []byte("$$__NAVI__$$"), navi, 1)
-	p = bytes.Replace(p, []byte("$$__MAIN__$$"), main, 1)
-	p = bytes.Replace(p, []byte("$$__FOOTER__$$"), footer, 1)
-	p = bytes.Replace(p, []byte("$$__CENTER_COL_WIDTH__$$"), []byte(centerColWidth), 1)
-	return p
-}

@@ -1,17 +1,17 @@
 package gen
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
-)
 
-type Styles struct {
-	CodeBlock string
-}
+	"github.com/iamjinlei/proteus/gen/markdown"
+)
 
 type Config struct {
 	InteralHtmlRefSuffix string
 	LazyImageLoading     bool
-	Styles               Styles
+	Styles               markdown.Styles
 }
 
 func DefaultConfig(
@@ -20,7 +20,7 @@ func DefaultConfig(
 	return Config{
 		InteralHtmlRefSuffix: internalHtmlRefSuffix,
 		LazyImageLoading:     true,
-		Styles: Styles{
+		Styles: markdown.Styles{
 			CodeBlock: fmt.Sprintf(
 				"padding:0.1em 1.5em;background-color:%v;",
 				cLightGray,
@@ -31,15 +31,22 @@ func DefaultConfig(
 
 type Html struct {
 	cfg Config
+	r   *renderer
 }
 
-func NewHtml(cfg Config) *Html {
+func NewHtml(cfg Config) (*Html, error) {
+	r, err := newRenderer(defaultLayout)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Html{
 		cfg: cfg,
-	}
+		r:   r,
+	}, nil
 }
 
-type Doc struct {
+type Page struct {
 	Html []byte
 	Refs []string
 }
@@ -47,34 +54,56 @@ type Doc struct {
 func (h *Html) Gen(
 	src []byte,
 	relDir string,
-) (*Doc, error) {
-	cfg, content, err := extractPageConfig(src)
+) (*Page, error) {
+	pCfg, md, err := extractPageConfig(src)
 	if err != nil {
 		return nil, err
 	}
 
-	page, err := parseMarkdown(content, relDir, h.cfg)
+	mdDoc, err := markdown.Parse(
+		md,
+		relDir,
+		h.cfg.InteralHtmlRefSuffix,
+		h.cfg.LazyImageLoading,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := renderPage(page, h.cfg)
+	mdHtml, err := markdown.RenderHtml(
+		mdDoc.Root,
+		h.cfg.LazyImageLoading,
+		h.cfg.Styles,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	refs := page.refs
-	if cfg.bannerRef() != "" {
-		refs = append(refs, cfg.bannerRef())
+	refs := mdDoc.Refs
+	if pCfg.bannerRef() != "" {
+		refs = append(refs, pCfg.bannerRef())
 	}
 
-	return &Doc{
-		Html: fillPageTemplate(
-			cfg.header(),
-			cfg.navi(),
-			body,
-			cfg.footer(),
+	var b bytes.Buffer
+	w := bufio.NewWriter(&b)
+	if err := h.r.render(
+		w,
+		newHtmlPageData(
+			pCfg.header(),
+			pCfg.navi(),
+			mdHtml,
+			pCfg.footer(),
 		),
+	); err != nil {
+		return nil, err
+	}
+
+	if err := w.Flush(); err != nil {
+		return nil, err
+	}
+
+	return &Page{
+		Html: b.Bytes(),
 		Refs: refs,
 	}, nil
 }

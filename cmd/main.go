@@ -48,7 +48,11 @@ func main() {
 		return
 	}
 
-	g := gen.NewHtml(gen.DefaultConfig(htmlSuffix))
+	g, err := gen.NewHtml(gen.DefaultConfig(htmlSuffix))
+	if err != nil {
+		fmt.Printf("Error creating html renderer: %v\n", err)
+		return
+	}
 
 	if *genFlag {
 		dstDir := filepath.Clean(*dstFlag)
@@ -101,14 +105,14 @@ func main() {
 
 			if isMarkdown {
 				relDir := filepath.Dir(relPath)
-				doc, err := g.Gen(data, relDir)
+				page, err := g.Gen(data, relDir)
 				if err != nil {
-					fmt.Printf("Error generating HTML doc: %v\n", err)
+					fmt.Printf("Error generating HTML page: %v\n", err)
 					return
 				}
 
-				data = doc.Html
-				refQueue = append(refQueue, doc.Refs...)
+				data = page.Html
+				refQueue = append(refQueue, page.Refs...)
 			}
 
 			if err := os.WriteFile(dst, data, filePermMode); err != nil {
@@ -163,12 +167,12 @@ func main() {
 			if directCopy {
 				w.Write(data)
 			} else {
-				doc, err := g.Gen(data, "")
+				page, err := g.Gen(data, "")
 				if err != nil {
-					w.Write([]byte(fmt.Sprintf("Error generating html: %v", err)))
+					w.Write([]byte(fmt.Sprintf("Error generating html page: %v", err)))
 				} else {
-					fmt.Printf("Transformed, %v bytes\n", len(doc.Html))
-					w.Write(doc.Html)
+					fmt.Printf("Transformed, %v bytes\n", len(page.Html))
+					w.Write(page.Html)
 				}
 			}
 		})
