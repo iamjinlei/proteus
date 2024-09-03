@@ -12,11 +12,23 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 )
 
-func parsePage(
+type markdownPage struct {
+	root     ast.Node
+	refs     []string
+	headings []*heading
+}
+
+type heading struct {
+	level    int
+	name     string
+	children []*heading
+}
+
+func parseMarkdown(
 	src []byte,
 	relDir string,
 	cfg Config,
-) (*page, error) {
+) (*markdownPage, error) {
 	p := parser.NewWithExtensions(
 		parser.CommonExtensions |
 			parser.AutoHeadingIDs |
@@ -24,7 +36,7 @@ func parsePage(
 	)
 	root := p.Parse(src)
 
-	page, err := buildPage(
+	page, err := buildMarkdownPage(
 		root,
 		relDir,
 		cfg.InteralHtmlRefSuffix,
@@ -37,12 +49,12 @@ func parsePage(
 	return page, nil
 }
 
-func buildPage(
+func buildMarkdownPage(
 	root ast.Node,
 	relPath string,
 	interalHtmlRefSuffix string,
 	lazyImgLoading bool,
-) (*page, error) {
+) (*markdownPage, error) {
 	var walkErr error
 	// Accumulate references found in the doc.
 	var refs []string
@@ -125,9 +137,10 @@ func buildPage(
 		return nil, walkErr
 	}
 
-	return &page{
-		root: root,
-		refs: refs,
+	return &markdownPage{
+		root:     root,
+		refs:     refs,
+		headings: ht.getHeadings(),
 	}, nil
 }
 

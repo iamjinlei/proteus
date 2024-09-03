@@ -53,7 +53,7 @@ func (h *Html) Gen(
 		return nil, err
 	}
 
-	page, err := parsePage(content, relDir, h.cfg)
+	page, err := parseMarkdown(content, relDir, h.cfg)
 	if err != nil {
 		return nil, err
 	}
