@@ -10,7 +10,7 @@ type renderer struct {
 }
 
 func newRenderer(layout string) (*renderer, error) {
-	tpl, err := template.New("test").Parse(layout)
+	tpl, err := template.New("default").Parse(layout)
 	if err != nil {
 		return nil, err
 	}

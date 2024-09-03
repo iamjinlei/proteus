@@ -60,10 +60,10 @@ func (c *pageConfig) bannerRef() string {
 
 func (c *pageConfig) header() template.HTML {
 	if c.m["banner"] == nil {
-		return template.HTML(fmt.Sprintf("<div style=\"width:100%%;height:%s;\"></div>", emptyBannerHeight))
+		return template.HTML(fmt.Sprintf(`<div style="width:100%%;height:%s;"></div>`, emptyBannerHeight))
 	}
 
-	return template.HTML(fmt.Sprintf("<img src=\"%v\" style=\"width:100%%;height:%s;object-fit:cover;\">", c.m["banner"], imgBannerHeight))
+	return template.HTML(fmt.Sprintf(`<img src="%v" style="width:100%%;height:%s;object-fit:cover;">`, c.m["banner"], imgBannerHeight))
 }
 
 func (c *pageConfig) navi() template.HTML {
@@ -82,16 +82,16 @@ func (c *pageConfig) navi() template.HTML {
 		if !ok {
 			return template.HTML("")
 		}
-		fmt.Printf("%v\n", str)
+
 		kv := strings.Split(str, "=")
 		if len(kv) != 2 {
 			return template.HTML("")
 		}
 
-		links = append(links, fmt.Sprintf("<a href=\"%s\">%s</a>", kv[1], kv[0]))
+		links = append(links, fmt.Sprintf(`<a href="%s">%s</a>`, kv[1], kv[0]))
 	}
 
-	return template.HTML(fmt.Sprintf("<span>%s</span><span style=\"margin-left:1em;\">%s</span>",
+	return template.HTML(fmt.Sprintf(`<span>%s</span><span style="margin-left:1em;">%s</span>`,
 		"\U0001f517",
 		strings.Join(links, " | "),
 	))

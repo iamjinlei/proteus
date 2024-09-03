@@ -28,12 +28,19 @@ var (
 		padding-right: 2em;
 		border-left: 1px solid {{ .Palette.LightGray }};
 		border-right: 1px solid {{ .Palette.LightGray }};
+		border: 1px solid {{ .Palette.Red }};
   		height: 100%;
 		min-height: 50em;
+	}
+	.row .main-left {
+		border: 1px solid {{ .Palette.Red }};
 	}
 	.row .footer {
 		margin-top: 4em;
 	}
+</style>
+<style>
+	{{ .Styles.MainLeft }}
 </style>
 </head>
 <body>
@@ -56,12 +63,13 @@ var (
 		</div>
 	</div>
 	<div class="row">
-		<div class="col-left">
+		<div class="main-left">
+			{{ .Content.MainLeft }}
 		</div>
 		<div class="main">
 			{{ .Content.Main }}
 		</div>
-		<div class="col-right">
+		<div class="main-right">
 		</div>
 	</div>
 	<div class="row">

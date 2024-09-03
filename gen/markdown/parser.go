@@ -20,6 +20,7 @@ type Doc struct {
 
 type Heading struct {
 	Level    int
+	ID       string
 	Name     string
 	Children []*Heading
 }
@@ -93,7 +94,7 @@ func buildMarkdownContent(
 				break
 			}
 
-			ht.add(v.Level, string(v.Children[0].(*ast.Text).Literal))
+			ht.add(v.Level, v.HeadingID, string(v.Children[0].(*ast.Text).Literal))
 
 		case *ast.Link:
 			ref := string(v.Destination)

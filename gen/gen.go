@@ -79,6 +79,8 @@ func (h *Html) Gen(
 		return nil, err
 	}
 
+	tocHtml, tocCss := renderToC(mdDoc.Headings, 3)
+
 	refs := mdDoc.Refs
 	if pCfg.bannerRef() != "" {
 		refs = append(refs, pCfg.bannerRef())
@@ -92,6 +94,8 @@ func (h *Html) Gen(
 			pCfg.header(),
 			pCfg.navi(),
 			mdHtml,
+			tocHtml,
+			tocCss,
 			pCfg.footer(),
 		),
 	); err != nil {

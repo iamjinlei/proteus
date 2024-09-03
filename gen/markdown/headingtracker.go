@@ -1,7 +1,5 @@
 package markdown
 
-import "fmt"
-
 type headingTracker struct {
 	queue [][]*Heading
 }
@@ -10,10 +8,10 @@ func newHeadingTracker() *headingTracker {
 	return &headingTracker{}
 }
 
-func (t *headingTracker) add(level int, name string) {
-	fmt.Printf("heading (%v) %v\n", level, name)
+func (t *headingTracker) add(level int, id, name string) {
 	h := &Heading{
 		Level: level,
+		ID:    id,
 		Name:  name,
 	}
 
