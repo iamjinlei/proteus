@@ -28,27 +28,34 @@ var (
 		padding-right: 2em;
 		border-left: 1px solid {{ .Palette.LightGray }};
 		border-right: 1px solid {{ .Palette.LightGray }};
-		border: 1px solid {{ .Palette.Red }};
   		height: 100%;
 		min-height: 50em;
 	}
 	.row .main-left {
-		border: 1px solid {{ .Palette.Red }};
 	}
 	.row .footer {
 		margin-top: 4em;
 	}
-</style>
-<style>
-	{{ .Styles.MainLeft }}
+	{{ .Content.Header.Css }}
+	{{ .Content.Navi.Css }}
+	{{ .Content.MainLeft.Css }}
+	{{ .Content.Main.Css }}
+	{{ .Content.Footer.Css }}
 </style>
 </head>
 <body>
+	<script>
+		{{ .Content.Header.Js }}
+		{{ .Content.Navi.Js }}
+		{{ .Content.MainLeft.Js }}
+		{{ .Content.Main.Js }}
+		{{ .Content.Footer.Js }}
+	</script>
 	<div class="row">
 		<div class="col-left">
 		</div>
 		<div class="header">
-			{{ .Content.Header }}
+			{{ .Content.Header.Html }}
 		</div>
 		<div class="col-right">
 		</div>
@@ -57,17 +64,17 @@ var (
 		<div class="col-left">
 		</div>
 		<div class="navi">
-			{{ .Content.Navi }}
+			{{ .Content.Navi.Html }}
 		</div>
 		<div class="col-right">
 		</div>
 	</div>
 	<div class="row">
 		<div class="main-left">
-			{{ .Content.MainLeft }}
+			{{ .Content.MainLeft.Html }}
 		</div>
 		<div class="main">
-			{{ .Content.Main }}
+			{{ .Content.Main.Html }}
 		</div>
 		<div class="main-right">
 		</div>
@@ -76,7 +83,7 @@ var (
 		<div class="col-left">
 		</div>
 		<div class="footer">
-			{{ .Content.Footer }}
+			{{ .Content.Footer.Html }}
 		</div>
 		<div class="col-right">
 		</div>

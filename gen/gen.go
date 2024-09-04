@@ -79,7 +79,12 @@ func (h *Html) Gen(
 		return nil, err
 	}
 
-	tocHtml, tocCss := renderToC(mdDoc.Headings, 3)
+	var toc *HtmlComponent
+	if pCfg.leftPane() == "toc" {
+		toc = renderToC(mdDoc.Headings, 3)
+	} else {
+		toc = &HtmlComponent{}
+	}
 
 	refs := mdDoc.Refs
 	if pCfg.bannerRef() != "" {
@@ -93,9 +98,10 @@ func (h *Html) Gen(
 		newHtmlPageData(
 			pCfg.header(),
 			pCfg.navi(),
-			mdHtml,
-			tocHtml,
-			tocCss,
+			&HtmlComponent{
+				Html: mdHtml,
+			},
+			toc,
 			pCfg.footer(),
 		),
 	); err != nil {

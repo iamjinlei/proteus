@@ -9,43 +9,100 @@ import (
 
 const (
 	defaultToCCss = template.CSS(`
-	.toc {
+.toc {
 	position: -webkit-sticky; /* Safari */
 	position: sticky;
 	float: right;
-	top: 5em;
+	top: 10em;
 	margin-right: 2em;
-	}
-	`)
+}
+.toc a {
+	text-decoration: none;
+	color: #000000;
+}
+.toc0_ul {
+	list-style-type: none;
+	font-size: 1.2em;
+}
+.toc1_ul {
+	list-style-type: none;
+	font-size: 0.9em;
+}
+.toc2_ul {
+	list-style-type: none;
+	font-size: 0.9em;
+}
+.toc_tgl {
+  	background-color: transparent;
+	font-family: "Menlo", "Lucida Console", "Monaco", "Consolas", monospace;
+	padding-left: 0.8em;
+	font-size: 0.8em;
+	border: none;
+	cursor: pointer;
+}
+`)
 )
 
 func renderToC(
 	hs []*markdown.Heading,
 	maxDepth int,
-) (template.HTML, template.CSS) {
+) *HtmlComponent {
 	if len(hs) == 0 {
-		return template.HTML(""), template.CSS("")
+		return &HtmlComponent{}
 	}
 
-	toc := renderHeadingList(hs, 0, maxDepth)
-	return template.HTML(`<div class="toc">` + toc + `</div>`), defaultToCCss
+	return &HtmlComponent{
+		Html: template.HTML(fmt.Sprintf(
+			`<div class="toc">%s</div>`,
+			renderHeadingList(hs, "", 0, maxDepth),
+		)),
+		Css: defaultToCCss,
+		Js: template.JS(`
+function toc_tgl(id) {
+	var btn = document.getElementById(id);
+	var c = document.getElementById(id.replace("tgl", "div"));
+console.log(btn.innerHTML);
+console.log(id.replace("tgl", "div"));
+	if (btn.innerHTML === "[+]") {
+	   btn.innerHTML = "[-]";
+	   c.style.display = "inline";
+	} else {
+	   btn.innerHTML = "[+]";
+	   c.style.display = "none";
+	}
+}
+`),
+	}
 }
 
 func renderHeadingList(
 	hs []*markdown.Heading,
+	idPrefix string,
 	depth int,
 	maxDepth int,
 ) string {
-	html := fmt.Sprintf(`<ul class="toc_ul_%d">`, depth)
-	for _, h := range hs {
+	html := fmt.Sprintf(`<ul class="toc%d_ul">`, depth)
+	for idx, h := range hs {
+		id := fmt.Sprintf("%d", idx)
+		if idPrefix != "" {
+			id = idPrefix + "." + id
+		}
 		html += fmt.Sprintf(
-			`<li class="toc_li_%d"><a href="#%s">%s</a></li>`,
+			`<li class="toc%d_li"><a href="#%s">%s</a>`,
 			depth,
 			h.ID,
 			h.Name,
 		)
 		if len(h.Children) > 0 && depth+1 < maxDepth {
-			html += renderHeadingList(h.Children, depth+1, maxDepth)
+			html += fmt.Sprintf(
+				`<button id="toc%s_tgl" class="toc_tgl" onclick="toc_tgl(this.id)" style="display:inline;">[+]</button></li>
+				<div id="toc%s_div" style="display:none;">%s</div>`,
+				id,
+				id,
+				renderHeadingList(h.Children, id, depth+1, maxDepth),
+			)
+		} else {
+			html += `</li>`
 		}
 	}
 	html += "</ul>"

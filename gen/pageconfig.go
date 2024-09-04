@@ -58,51 +58,87 @@ func (c *pageConfig) bannerRef() string {
 	return ref
 }
 
-func (c *pageConfig) header() template.HTML {
-	if c.m["banner"] == nil {
-		return template.HTML(fmt.Sprintf(`<div style="width:100%%;height:%s;"></div>`, emptyBannerHeight))
+func (c *pageConfig) leftPane() string {
+	if c.m["left_pane"] == nil {
+		return ""
 	}
 
-	return template.HTML(fmt.Sprintf(`<img src="%v" style="width:100%%;height:%s;object-fit:cover;">`, c.m["banner"], imgBannerHeight))
+	t, ok := c.m["left_pane"].(string)
+	if !ok {
+		return ""
+	}
+	return t
 }
 
-func (c *pageConfig) navi() template.HTML {
+func (c *pageConfig) header() *HtmlComponent {
+	if c.m["banner"] == nil {
+		return &HtmlComponent{
+			Html: template.HTML(fmt.Sprintf(
+				`<div style="width:100%%;height:%s;"></div>`,
+				emptyBannerHeight,
+			)),
+		}
+	}
+
+	return &HtmlComponent{
+		Html: template.HTML(fmt.Sprintf(
+			`<img src="%v" style="width:100%%;height:%s;object-fit:cover;">`,
+			c.m["banner"],
+			imgBannerHeight,
+		)),
+	}
+}
+
+func (c *pageConfig) navi() *HtmlComponent {
 	if c.m["navi"] == nil {
-		return template.HTML("")
+		return &HtmlComponent{
+			Html: template.HTML(""),
+		}
 	}
 
 	arr, ok := c.m["navi"].([]interface{})
 	if !ok {
-		return template.HTML("")
+		return &HtmlComponent{
+			Html: template.HTML(""),
+		}
 	}
 
 	var links []string
 	for _, v := range arr {
 		str, ok := v.(string)
 		if !ok {
-			return template.HTML("")
+			return &HtmlComponent{
+				Html: template.HTML(""),
+			}
 		}
 
 		kv := strings.Split(str, "=")
 		if len(kv) != 2 {
-			return template.HTML("")
+			return &HtmlComponent{
+				Html: template.HTML(""),
+			}
 		}
 
 		links = append(links, fmt.Sprintf(`<a href="%s">%s</a>`, kv[1], kv[0]))
 	}
 
-	return template.HTML(fmt.Sprintf(`<span>%s</span><span style="margin-left:1em;">%s</span>`,
-		"\U0001f517",
-		strings.Join(links, " | "),
-	))
+	return &HtmlComponent{
+		Html: template.HTML(fmt.Sprintf(
+			`<span>%s</span><span style="margin-left:1em;">%s</span>`,
+			"\U0001f517",
+			strings.Join(links, " | "),
+		)),
+	}
 }
 
-func (c *pageConfig) footer() template.HTML {
-	return template.HTML(`
+func (c *pageConfig) footer() *HtmlComponent {
+	return &HtmlComponent{
+		Html: template.HTML(`
 	<div style="max-width:fit-content;margin-inline:auto;">
 		<span style="font-size: 80%;">Generated from markdown by
 		<a href="https://github.com/iamjinlei/proteus">proteus</a>
 		</span>
 		</div>
-	</div>`)
+	</div>`),
+	}
 }

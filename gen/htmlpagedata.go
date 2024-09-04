@@ -20,40 +20,37 @@ type Dimensions struct {
 	CenterColWidth string
 }
 
-type Styles struct {
-	MainLeft template.CSS
+type HtmlComponent struct {
+	Html template.HTML
+	Css  template.CSS
+	Js   template.JS
 }
 
 type Content struct {
-	Header   template.HTML
-	Navi     template.HTML
-	Main     template.HTML
-	MainLeft template.HTML
-	Footer   template.HTML
+	Header   *HtmlComponent
+	Navi     *HtmlComponent
+	Main     *HtmlComponent
+	MainLeft *HtmlComponent
+	Footer   *HtmlComponent
 }
 
 type HtmlPageData struct {
 	Palette    Palette
 	Dimensions Dimensions
-	Styles     Styles
 	Content    Content
 }
 
 func newHtmlPageData(
-	header template.HTML,
-	navi template.HTML,
-	main template.HTML,
-	mainLeft template.HTML,
-	mainLeftStyle template.CSS,
-	footer template.HTML,
+	header *HtmlComponent,
+	navi *HtmlComponent,
+	main *HtmlComponent,
+	mainLeft *HtmlComponent,
+	footer *HtmlComponent,
 ) *HtmlPageData {
 	return &HtmlPageData{
 		Palette: defaultPalette,
 		Dimensions: Dimensions{
 			CenterColWidth: centerColWidth,
-		},
-		Styles: Styles{
-			MainLeft: mainLeftStyle,
 		},
 		Content: Content{
 			Header:   header,
