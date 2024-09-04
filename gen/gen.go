@@ -31,6 +31,8 @@ func DefaultConfig(
 
 type Html struct {
 	cfg Config
+	mdp *markdown.Parser
+	mdr *markdown.Renderer
 	r   *renderer
 }
 
@@ -42,7 +44,14 @@ func NewHtml(cfg Config) (*Html, error) {
 
 	return &Html{
 		cfg: cfg,
-		r:   r,
+		mdp: markdown.NewParser(
+			cfg.InteralHtmlRefSuffix,
+			cfg.LazyImageLoading,
+		),
+		mdr: markdown.NewRenderer(
+			cfg.LazyImageLoading,
+		),
+		r: r,
 	}, nil
 }
 
@@ -60,19 +69,13 @@ func (h *Html) Gen(
 		return nil, err
 	}
 
-	mdDoc, err := markdown.Parse(
-		md,
-		relDir,
-		h.cfg.InteralHtmlRefSuffix,
-		h.cfg.LazyImageLoading,
-	)
+	mdDoc, err := h.mdp.Parse(md, relDir)
 	if err != nil {
 		return nil, err
 	}
 
-	mdHtml, err := markdown.RenderHtml(
+	mdHtml, err := h.mdr.Render(
 		mdDoc.Root,
-		h.cfg.LazyImageLoading,
 		h.cfg.Styles,
 	)
 	if err != nil {

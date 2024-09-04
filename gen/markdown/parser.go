@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/parser"
+	"golang.org/x/net/html"
 )
 
 type Doc struct {
@@ -25,25 +25,30 @@ type Heading struct {
 	Children []*Heading
 }
 
-func Parse(
-	src []byte,
-	relDir string,
+type Parser struct {
+	interalHtmlRefSuffix string
+	lazyImageLoading     bool
+}
+
+func NewParser(
 	interalHtmlRefSuffix string,
 	lazyImageLoading bool,
-) (*Doc, error) {
-	p := parser.NewWithExtensions(
+) *Parser {
+	return &Parser{
+		interalHtmlRefSuffix: interalHtmlRefSuffix,
+		lazyImageLoading:     lazyImageLoading,
+	}
+}
+
+func (p *Parser) Parse(src []byte, relDir string) (*Doc, error) {
+	mdp := parser.NewWithExtensions(
 		parser.CommonExtensions |
 			parser.AutoHeadingIDs |
 			parser.NoEmptyLineBeforeBlock,
 	)
-	root := p.Parse(src)
+	root := mdp.Parse(src)
 
-	c, err := buildMarkdownContent(
-		root,
-		relDir,
-		interalHtmlRefSuffix,
-		lazyImageLoading,
-	)
+	c, err := p.buildMarkdownContent(root, relDir)
 	if err != nil {
 		return nil, err
 	}
@@ -51,11 +56,9 @@ func Parse(
 	return c, nil
 }
 
-func buildMarkdownContent(
+func (p *Parser) buildMarkdownContent(
 	root ast.Node,
 	relPath string,
-	interalHtmlRefSuffix string,
-	lazyImgLoading bool,
 ) (*Doc, error) {
 	var walkErr error
 	// Accumulate references found in the doc.
@@ -64,11 +67,11 @@ func buildMarkdownContent(
 	ht := newHeadingTracker()
 
 	ast.WalkFunc(root, func(node ast.Node, entering bool) ast.WalkStatus {
-		if false {
+		if true {
 			name := reflect.TypeOf(node).String()
 			if strings.Contains(name, "HTMLSpan") {
 				n := node.(*ast.HTMLSpan)
-				fmt.Printf("%v\n", string(n.Literal))
+				fmt.Printf("HTMLSpan: %v, entering %v\n", string(n.Literal), entering)
 			} else if strings.Contains(name, "Text") ||
 				strings.Contains(name, "ListItem") ||
 				strings.Contains(name, "Paragraph") ||
@@ -105,7 +108,7 @@ func buildMarkdownContent(
 				ref = filepath.Join(relPath, ref)
 			}
 
-			v.Destination = []byte(ref + interalHtmlRefSuffix)
+			v.Destination = []byte(ref + p.interalHtmlRefSuffix)
 			refs = append(refs, ref)
 
 		case *ast.Image:
@@ -121,7 +124,13 @@ func buildMarkdownContent(
 			refs = append(refs, ref)
 
 		case *ast.HTMLSpan:
-			htmlBody, htmlRefs, err := walkHtmlDOMs(relPath, v.Literal, lazyImgLoading)
+			if bytes.HasPrefix(v.Literal, []byte("</")) {
+				break
+			}
+
+			// HTMLSpan is not limited to <span> tag, it actually represents
+			// a set of HTML tags, such as span, img, etc.
+			htmlBody, htmlRefs, err := p.processHTMLTag(relPath, v.Literal)
 			if err != nil {
 				walkErr = err
 				return ast.Terminate
@@ -145,58 +154,55 @@ func buildMarkdownContent(
 	}, nil
 }
 
-func walkHtmlDOMs(
+func (p *Parser) processHTMLTag(
 	relPath string,
 	data []byte,
-	lazyImgLoading bool,
 ) ([]byte, []string, error) {
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(data))
+	tag, err := parseTag(data)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var refs []string
 	hasUpdate := false
-	doc.Find("img").Each(func(_ int, sel *goquery.Selection) {
-		if ref, exists := sel.Attr("src"); exists {
-			if isExternalLink(ref) {
-				return
-			}
-
-			if lazyImgLoading {
-				sel.SetAttr("loading", "lazy")
-				hasUpdate = true
-			}
-
-			if !strings.HasPrefix(ref, relPath) {
-				ref = filepath.Join(relPath, ref)
-			}
-
-			refs = append(refs, ref)
+	switch tag.Data {
+	case "img":
+		ref := getTagAttr(tag, "src")
+		if ref == "" {
+			break
 		}
-	})
 
-	html := data
+		if isExternalLink(ref) {
+			break
+		}
+
+		if p.lazyImageLoading {
+			setTagAttr(tag, "loading", "lazy")
+			hasUpdate = true
+		}
+
+		if !strings.HasPrefix(ref, relPath) {
+			ref = filepath.Join(relPath, ref)
+		}
+
+		refs = append(refs, ref)
+	}
+
 	if hasUpdate {
 		// NOTE(kmax): be careful, <span> and </span> are treated as
 		// different ast.Node. So we only parse <span>, but doc.Html
 		// would complete the closing </span>. If we don't handle it
 		// properly, it may end up with 2 </span>. Luckily, for now
 		// <img> does not have the closing </img> pair.
-		htmlStr, err := doc.Html()
-		if err != nil {
+		var buf bytes.Buffer
+		if err := html.Render(&buf, tag); err != nil {
 			return nil, nil, err
 		}
-
-		html = []byte(stripHTMLWrapper(htmlStr))
+		data = buf.Bytes()
+		fmt.Printf("updated %v\n", string(data))
 	}
 
-	return html, refs, nil
-}
-
-func stripHTMLWrapper(html string) string {
-	html = strings.Replace(html, "<html><head></head><body>", "", 1)
-	return strings.Replace(html, "</body></html>", "", 1)
+	return data, refs, nil
 }
 
 func isExternalLink(ref string) bool {

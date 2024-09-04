@@ -17,13 +17,24 @@ type Styles struct {
 	CodeBlock string
 }
 
-func RenderHtml(
-	root ast.Node,
+type Renderer struct {
+	lazyImageLoading bool
+}
+
+func NewRenderer(
 	lazyImageLoading bool,
+) *Renderer {
+	return &Renderer{
+		lazyImageLoading: lazyImageLoading,
+	}
+}
+
+func (r *Renderer) Render(
+	root ast.Node,
 	styles Styles,
 ) (template.HTML, error) {
 	flags := html.CommonFlags | html.HrefTargetBlank
-	if lazyImageLoading {
+	if r.lazyImageLoading {
 		flags |= html.LazyLoadImages
 	}
 
@@ -31,15 +42,15 @@ func RenderHtml(
 		styles: styles,
 	}
 
-	r := html.NewRenderer(
+	htmlRenderer := html.NewRenderer(
 		html.RendererOptions{
 			Flags:          flags,
 			RenderNodeHook: rh.render,
 		},
 	)
-	rh.r = r
+	rh.r = htmlRenderer
 
-	data := markdown.Render(root, r)
+	data := markdown.Render(root, htmlRenderer)
 	if rh.err != nil {
 		return template.HTML(""), rh.err
 	}

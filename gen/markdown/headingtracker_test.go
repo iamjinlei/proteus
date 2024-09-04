@@ -15,9 +15,9 @@ func TestHeadingTracker(t *testing.T) {
 			name: "flat list",
 			run: func(t *testing.T) {
 				ht := newHeadingTracker()
-				ht.add(1, "heading1")
-				ht.add(1, "heading2")
-				ht.add(1, "heading3")
+				ht.add(1, "", "heading1")
+				ht.add(1, "", "heading2")
+				ht.add(1, "", "heading3")
 
 				hds := ht.getHeadings()
 				require.Equal(t, 3, len(hds))
@@ -36,20 +36,20 @@ func TestHeadingTracker(t *testing.T) {
 			name: "nested list",
 			run: func(t *testing.T) {
 				ht := newHeadingTracker()
-				ht.add(1, "heading1")
-				ht.add(1, "heading2")
-				ht.add(2, "heading2.1")
-				ht.add(2, "heading2.2")
-				ht.add(2, "heading2.3")
-				ht.add(3, "heading2.3.1")
-				ht.add(3, "heading2.3.2")
-				ht.add(1, "heading3")
-				ht.add(2, "heading3.1")
-				ht.add(3, "heading3.1.1")
-				ht.add(3, "heading3.1.2")
-				ht.add(2, "heading3.2")
-				ht.add(3, "heading3.2.1")
-				ht.add(2, "heading3.3")
+				ht.add(1, "", "heading1")
+				ht.add(1, "", "heading2")
+				ht.add(2, "", "heading2.1")
+				ht.add(2, "", "heading2.2")
+				ht.add(2, "", "heading2.3")
+				ht.add(3, "", "heading2.3.1")
+				ht.add(3, "", "heading2.3.2")
+				ht.add(1, "", "heading3")
+				ht.add(2, "", "heading3.1")
+				ht.add(3, "", "heading3.1.1")
+				ht.add(3, "", "heading3.1.2")
+				ht.add(2, "", "heading3.2")
+				ht.add(3, "", "heading3.2.1")
+				ht.add(2, "", "heading3.3")
 
 				hds := ht.getHeadings()
 				require.Equal(t, 3, len(hds))
@@ -110,9 +110,9 @@ func TestHeadingTracker(t *testing.T) {
 			name: "skipped higher headings",
 			run: func(t *testing.T) {
 				ht := newHeadingTracker()
-				ht.add(3, "heading2.1.1")
-				ht.add(3, "heading2.1.2")
-				ht.add(4, "heading2.1.2.1")
+				ht.add(3, "", "heading2.1.1")
+				ht.add(3, "", "heading2.1.2")
+				ht.add(4, "", "heading2.1.2.1")
 
 				hds := ht.getHeadings()
 				require.Equal(t, 2, len(hds))
@@ -131,11 +131,11 @@ func TestHeadingTracker(t *testing.T) {
 			name: "missing higher headings",
 			run: func(t *testing.T) {
 				ht := newHeadingTracker()
-				ht.add(3, "heading3.1.1")
-				ht.add(3, "heading3.1.2")
-				ht.add(2, "heading3.2")
-				ht.add(2, "heading3.3")
-				ht.add(1, "heading4")
+				ht.add(3, "", "heading3.1.1")
+				ht.add(3, "", "heading3.1.2")
+				ht.add(2, "", "heading3.2")
+				ht.add(2, "", "heading3.3")
+				ht.add(1, "", "heading4")
 
 				hds := ht.getHeadings()
 				require.Equal(t, 2, len(hds))
