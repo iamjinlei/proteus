@@ -66,10 +66,9 @@ func buildMarkdownContent(
 	ast.WalkFunc(root, func(node ast.Node, entering bool) ast.WalkStatus {
 		if false {
 			name := reflect.TypeOf(node).String()
-			if strings.Contains(name, "Heading") {
-				children := node.(*ast.Heading).Children
-				c0 := children[0].(*ast.Text)
-				fmt.Printf("cc = %v, node = %#v\n", len(children), string(c0.Literal))
+			if strings.Contains(name, "HTMLSpan") {
+				n := node.(*ast.HTMLSpan)
+				fmt.Printf("%v\n", string(n.Literal))
 			} else if strings.Contains(name, "Text") ||
 				strings.Contains(name, "ListItem") ||
 				strings.Contains(name, "Paragraph") ||

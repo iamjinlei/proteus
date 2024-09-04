@@ -86,6 +86,10 @@ func main() {
 				}
 			}
 
+			if !updateRequired(src, dst) {
+				continue
+			}
+
 			fmt.Printf("%v, %v -> %v\n", relPath, src, dst)
 
 			dstDir := filepath.Dir(dst)
@@ -193,6 +197,19 @@ func fileExists(path string) bool {
 func isHidden(path string) bool {
 	base := filepath.Base(path)
 	return base[0] == '.'
+}
+
+func updateRequired(src, dst string) bool {
+	dstFi, err := os.Stat(dst)
+	if err != nil {
+		return true
+	}
+	srcFi, err := os.Stat(src)
+	if err != nil {
+		return true
+	}
+
+	return srcFi.ModTime().After(dstFi.ModTime())
 }
 
 func loadConfig(srcDir, path string) (Config, error) {
