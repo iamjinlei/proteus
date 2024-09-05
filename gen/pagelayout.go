@@ -1,7 +1,6 @@
 package gen
 
 var (
-	centerColWidth    = "60em"
 	imgBannerHeight   = "10em"
 	emptyBannerHeight = "2em"
 
@@ -13,11 +12,20 @@ var (
 <meta content="utf-8" http-equiv="encoding">
 <title></title>
 <style>
+@media (min-width: 1080px) {
 	.row {
 		display: grid;
-		grid-template-columns: 1fr {{ .Dimensions.CenterColWidth }} 1fr;
+		grid-template-columns: 1fr 2fr 1fr;
 		font-size: 120%;
 	}
+}
+@media (max-width: 1079px) {
+	.row {
+		display: grid;
+		grid-template-columns: 1fr 4fr 1fr;
+		font-size: 60%;
+	}
+}
 	.row .header {
 		padding-bottom: 4em;
 	}

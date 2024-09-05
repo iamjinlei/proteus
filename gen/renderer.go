@@ -20,7 +20,7 @@ func newRenderer(layout string) (*renderer, error) {
 	}, nil
 }
 
-func (r *renderer) render(w io.Writer, d *HtmlPageData) error {
+func (r *renderer) render(w io.Writer, d *TemplateData) error {
 	if err := r.tpl.Execute(w, d); err != nil {
 		return err
 	}

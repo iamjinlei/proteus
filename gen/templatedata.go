@@ -7,7 +7,6 @@ import (
 )
 
 type Dimensions struct {
-	CenterColWidth string
 }
 
 type HtmlComponent struct {
@@ -24,24 +23,22 @@ type Content struct {
 	Footer   *HtmlComponent
 }
 
-type HtmlPageData struct {
+type TemplateData struct {
 	Palette    color.Palette
 	Dimensions Dimensions
 	Content    Content
 }
 
-func newHtmlPageData(
+func newTemplateData(
 	header *HtmlComponent,
 	navi *HtmlComponent,
 	main *HtmlComponent,
 	mainLeft *HtmlComponent,
 	footer *HtmlComponent,
-) *HtmlPageData {
-	return &HtmlPageData{
-		Palette: color.DefaultPalette,
-		Dimensions: Dimensions{
-			CenterColWidth: centerColWidth,
-		},
+) *TemplateData {
+	return &TemplateData{
+		Palette:    color.DefaultPalette,
+		Dimensions: Dimensions{},
 		Content: Content{
 			Header:   header,
 			Navi:     navi,

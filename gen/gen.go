@@ -97,7 +97,7 @@ func (h *Html) Gen(src []byte) (*Page, error) {
 	w := bufio.NewWriter(&b)
 	if err := h.r.render(
 		w,
-		newHtmlPageData(
+		newTemplateData(
 			pCfg.header(),
 			pCfg.navi(),
 			&HtmlComponent{
