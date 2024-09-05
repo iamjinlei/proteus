@@ -3,7 +3,6 @@ package markdown
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -40,7 +39,10 @@ func NewParser(
 	}
 }
 
-func (p *Parser) Parse(src []byte, relDir string) (*Doc, error) {
+// Link or reference used in the markdown can be relative the current file
+// location, it is ok as browser appends the relative path and the server
+// always receives the full path relative to the server root.
+func (p *Parser) Parse(src []byte) (*Doc, error) {
 	mdp := parser.NewWithExtensions(
 		parser.CommonExtensions |
 			parser.AutoHeadingIDs |
@@ -48,7 +50,7 @@ func (p *Parser) Parse(src []byte, relDir string) (*Doc, error) {
 	)
 	root := mdp.Parse(src)
 
-	c, err := p.buildMarkdownContent(root, relDir)
+	c, err := p.buildMarkdownContent(root)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +60,6 @@ func (p *Parser) Parse(src []byte, relDir string) (*Doc, error) {
 
 func (p *Parser) buildMarkdownContent(
 	root ast.Node,
-	relPath string,
 ) (*Doc, error) {
 	var walkErr error
 	// Accumulate references found in the doc.
@@ -104,10 +105,6 @@ func (p *Parser) buildMarkdownContent(
 				break
 			}
 
-			if !strings.HasPrefix(ref, relPath) {
-				ref = filepath.Join(relPath, ref)
-			}
-
 			v.Destination = []byte(ref + p.interalHtmlRefSuffix)
 			refs = append(refs, ref)
 
@@ -117,27 +114,26 @@ func (p *Parser) buildMarkdownContent(
 				break
 			}
 
-			if !strings.HasPrefix(ref, relPath) {
-				ref = filepath.Join(relPath, ref)
-			}
-
 			refs = append(refs, ref)
 
 		case *ast.HTMLSpan:
+			// Closing tag is also treated as entering.
 			if bytes.HasPrefix(v.Literal, []byte("</")) {
 				break
 			}
 
 			// HTMLSpan is not limited to <span> tag, it actually represents
 			// a set of HTML tags, such as span, img, etc.
-			htmlBody, htmlRefs, err := p.processHTMLTag(relPath, v.Literal)
+			tag, err := p.processHTMLTag(v.Literal)
 			if err != nil {
 				walkErr = err
 				return ast.Terminate
 			}
 
-			v.Literal = htmlBody
-			refs = append(refs, htmlRefs...)
+			v.Literal = tag.html
+			if tag.ref != "" {
+				refs = append(refs, tag.ref)
+			}
 		}
 
 		return ast.GoToNext
@@ -154,20 +150,27 @@ func (p *Parser) buildMarkdownContent(
 	}, nil
 }
 
+type htmlTag struct {
+	html []byte
+	ref  string
+}
+
 func (p *Parser) processHTMLTag(
-	relPath string,
 	data []byte,
-) ([]byte, []string, error) {
-	tag, err := parseTag(data)
+) (*htmlTag, error) {
+	node, err := parseTag(data)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	var refs []string
+	tag := &htmlTag{
+		html: data,
+	}
+
 	hasUpdate := false
-	switch tag.Data {
+	switch node.Data {
 	case "img":
-		ref := getTagAttr(tag, "src")
+		ref := getTagAttr(node, "src")
 		if ref == "" {
 			break
 		}
@@ -177,15 +180,11 @@ func (p *Parser) processHTMLTag(
 		}
 
 		if p.lazyImageLoading {
-			setTagAttr(tag, "loading", "lazy")
+			setTagAttr(node, "loading", "lazy")
 			hasUpdate = true
 		}
 
-		if !strings.HasPrefix(ref, relPath) {
-			ref = filepath.Join(relPath, ref)
-		}
-
-		refs = append(refs, ref)
+		tag.ref = ref
 	}
 
 	if hasUpdate {
@@ -195,14 +194,15 @@ func (p *Parser) processHTMLTag(
 		// properly, it may end up with 2 </span>. Luckily, for now
 		// <img> does not have the closing </img> pair.
 		var buf bytes.Buffer
-		if err := html.Render(&buf, tag); err != nil {
-			return nil, nil, err
+		if err := html.Render(&buf, node); err != nil {
+			return nil, err
 		}
-		data = buf.Bytes()
-		fmt.Printf("updated %v\n", string(data))
+
+		tag.html = buf.Bytes()
+		fmt.Printf("updated %v\n", string(tag.html))
 	}
 
-	return data, refs, nil
+	return tag, nil
 }
 
 func isExternalLink(ref string) bool {

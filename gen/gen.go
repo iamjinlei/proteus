@@ -60,16 +60,13 @@ type Page struct {
 	Refs []string
 }
 
-func (h *Html) Gen(
-	src []byte,
-	relDir string,
-) (*Page, error) {
+func (h *Html) Gen(src []byte) (*Page, error) {
 	pCfg, md, err := extractPageConfig(src)
 	if err != nil {
 		return nil, err
 	}
 
-	mdDoc, err := h.mdp.Parse(md, relDir)
+	mdDoc, err := h.mdp.Parse(md)
 	if err != nil {
 		return nil, err
 	}

@@ -38,6 +38,11 @@ func main() {
 		"",
 		"Destination directory to store generated html files",
 	)
+	forceFlag := flag.Bool(
+		"f",
+		false,
+		"Force regenerate all html files",
+	)
 	flag.Parse()
 
 	srcDir := filepath.Clean(*srcFlag)
@@ -66,6 +71,7 @@ func main() {
 
 		dirSeen := map[string]bool{}
 		for len(refQueue) > 0 {
+			// relPath is the path relative to the source repo dir.
 			relPath := refQueue[0]
 			refQueue = refQueue[1:]
 			isMarkdown := strings.HasSuffix(relPath, mdSuffix)
@@ -86,7 +92,7 @@ func main() {
 				}
 			}
 
-			if !updateRequired(src, dst) {
+			if !*forceFlag && !updateRequired(src, dst) {
 				continue
 			}
 
@@ -108,15 +114,24 @@ func main() {
 			}
 
 			if isMarkdown {
-				relDir := filepath.Dir(relPath)
-				page, err := g.Gen(data, relDir)
+				page, err := g.Gen(data)
 				if err != nil {
 					fmt.Printf("Error generating HTML page: %v\n", err)
 					return
 				}
 
+				relDir := filepath.Dir(relPath)
+				for _, ref := range page.Refs {
+					// If the link path referenced in the markdown is relative
+					// to the markdown file location, update it to be relative
+					// to the src repo location before pushing into queue.
+					if !strings.HasPrefix(ref, relDir) {
+						ref = filepath.Join(relDir, ref)
+					}
+					refQueue = append(refQueue, ref)
+				}
+
 				data = page.Html
-				refQueue = append(refQueue, page.Refs...)
 			}
 
 			if err := os.WriteFile(dst, data, filePermMode); err != nil {
@@ -171,7 +186,7 @@ func main() {
 			if directCopy {
 				w.Write(data)
 			} else {
-				page, err := g.Gen(data, "")
+				page, err := g.Gen(data)
 				if err != nil {
 					w.Write([]byte(fmt.Sprintf("Error generating html page: %v", err)))
 				} else {
