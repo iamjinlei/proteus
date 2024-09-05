@@ -10,4 +10,10 @@ const (
 	Orange    Color = "#FFA500"
 	Pink      Color = "#FFD1DC"
 	LightGray Color = "#F0F0F0"
+
+	HighlighterUltraRed   Color = "#FF7792"
+	HighlighterFrenchLime Color = "#AEFF77"
+	HighlighterMayaBlue   Color = "#77C9FF"
+	HighlighterLaserLemon Color = "#FFFF77"
+	HighlighterMacCheese  Color = "#FFAE77"
 )

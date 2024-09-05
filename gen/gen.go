@@ -46,6 +46,7 @@ func NewHtml(cfg Config) (*Html, error) {
 	return &Html{
 		cfg: cfg,
 		mdp: markdown.NewParser(
+			color.DefaultPalette,
 			cfg.InteralHtmlRefSuffix,
 			cfg.LazyImageLoading,
 		),

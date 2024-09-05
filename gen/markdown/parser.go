@@ -9,6 +9,14 @@ import (
 	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/parser"
 	"golang.org/x/net/html"
+
+	"github.com/iamjinlei/proteus/gen/color"
+)
+
+var (
+	htmlClosingTagPrefix = []byte("</")
+	htmlClosingTagMark   = []byte("</mark>")
+	htmlClosingTagSpan   = []byte("</span>")
 )
 
 type Doc struct {
@@ -24,16 +32,38 @@ type Heading struct {
 	Children []*Heading
 }
 
+type closingTagMapping struct {
+	from []byte
+	to   []byte
+}
+
 type Parser struct {
+	palette              map[string]string
 	interalHtmlRefSuffix string
 	lazyImageLoading     bool
+	closingTagQueue      []*closingTagMapping
 }
 
 func NewParser(
+	palette color.Palette,
 	interalHtmlRefSuffix string,
 	lazyImageLoading bool,
 ) *Parser {
+	p := map[string]string{}
+	types := reflect.TypeOf(palette)
+	vals := reflect.ValueOf(palette)
+	for i := 0; i < types.NumField(); i++ {
+		p[strings.ToLower(types.Field(i).Name)] = vals.Field(i).String()
+	}
+
+	p["name"] = string(palette.HighlighterRed)
+	p["b"] = string(palette.HighlighterGreen)
+	p["c"] = string(palette.HighlighterBlue)
+	p["d"] = string(palette.HighlighterYellow)
+	p["e"] = string(palette.HighlighterOrange)
+
 	return &Parser{
+		palette:              p,
 		interalHtmlRefSuffix: interalHtmlRefSuffix,
 		lazyImageLoading:     lazyImageLoading,
 	}
@@ -117,11 +147,6 @@ func (p *Parser) buildMarkdownContent(
 			refs = append(refs, ref)
 
 		case *ast.HTMLSpan:
-			// Closing tag is also treated as entering.
-			if bytes.HasPrefix(v.Literal, []byte("</")) {
-				break
-			}
-
 			// HTMLSpan is not limited to <span> tag, it actually represents
 			// a set of HTML tags, such as span, img, etc.
 			tag, err := p.processHTMLTag(v.Literal)
@@ -158,19 +183,47 @@ type htmlTag struct {
 func (p *Parser) processHTMLTag(
 	data []byte,
 ) (*htmlTag, error) {
+	tag := &htmlTag{
+		html: data,
+	}
+
+	// Closing tag is also treated as entering.
+	if bytes.HasPrefix(data, htmlClosingTagPrefix) {
+		if len(p.closingTagQueue) > 0 {
+			m := p.closingTagQueue[0]
+			if bytes.Equal(data, m.from) {
+				tag.html = m.to
+				p.closingTagQueue = p.closingTagQueue[1:]
+			}
+		}
+
+		return tag, nil
+	}
+
 	node, err := parseTag(data)
 	if err != nil {
 		return nil, err
 	}
 
-	tag := &htmlTag{
-		html: data,
+	updateNode := func() error {
+		// NOTE(kmax): be careful, <span> and </span> are treated as
+		// different ast.Node. So we only parse <span>, but doc.Html
+		// would complete the closing </span>. If we don't handle it
+		// properly, it may end up with 2 </span>. Luckily, for now
+		// <img> does not have the closing </img> pair.
+		var buf bytes.Buffer
+		if err := html.Render(&buf, node); err != nil {
+			return err
+		}
+
+		tag.html = buf.Bytes()
+		fmt.Printf("updated %v\n", string(tag.html))
+		return nil
 	}
 
-	hasUpdate := false
 	switch node.Data {
 	case "img":
-		ref := getTagAttr(node, "src")
+		ref := getNodeAttr(node, "src")
 		if ref == "" {
 			break
 		}
@@ -180,26 +233,31 @@ func (p *Parser) processHTMLTag(
 		}
 
 		if p.lazyImageLoading {
-			setTagAttr(node, "loading", "lazy")
-			hasUpdate = true
+			setNodeAttr(node, "loading", "lazy")
+			if err := updateNode(); err != nil {
+				return nil, err
+			}
 		}
 
 		tag.ref = ref
-	}
 
-	if hasUpdate {
-		// NOTE(kmax): be careful, <span> and </span> are treated as
-		// different ast.Node. So we only parse <span>, but doc.Html
-		// would complete the closing </span>. If we don't handle it
-		// properly, it may end up with 2 </span>. Luckily, for now
-		// <img> does not have the closing </img> pair.
-		var buf bytes.Buffer
-		if err := html.Render(&buf, node); err != nil {
-			return nil, err
+	case "mark":
+		attrName := getNodeOnlyAttr(node)
+		if attrName == "" {
+			break
 		}
 
-		tag.html = buf.Bytes()
-		fmt.Printf("updated %v\n", string(tag.html))
+		if color, found := p.palette[attrName]; found {
+			tag.html = []byte(fmt.Sprintf(
+				`<span style="background-color:%s;">`,
+				color,
+			))
+			p.closingTagQueue = append(p.closingTagQueue, &closingTagMapping{
+				from: htmlClosingTagMark,
+				to:   htmlClosingTagSpan,
+			})
+			break
+		}
 	}
 
 	return tag, nil

@@ -42,7 +42,7 @@ func parseTag(data []byte) (*html.Node, error) {
 	return n, nil
 }
 
-func getTagAttrPtr(n *html.Node, name string) *html.Attribute {
+func getNodeAttrPtr(n *html.Node, name string) *html.Attribute {
 	if n == nil {
 		return nil
 	}
@@ -56,8 +56,8 @@ func getTagAttrPtr(n *html.Node, name string) *html.Attribute {
 	return nil
 }
 
-func getTagAttr(n *html.Node, name string) string {
-	a := getTagAttrPtr(n, name)
+func getNodeAttr(n *html.Node, name string) string {
+	a := getNodeAttrPtr(n, name)
 	if a == nil {
 		return ""
 	}
@@ -65,11 +65,18 @@ func getTagAttr(n *html.Node, name string) string {
 	return a.Val
 }
 
-func setTagAttr(n *html.Node, name, val string) {
-	a := getTagAttrPtr(n, name)
+func setNodeAttr(n *html.Node, name, val string) {
+	a := getNodeAttrPtr(n, name)
 	if a == nil {
 		n.Attr = append(n.Attr, html.Attribute{Key: name, Val: val})
 	} else {
 		a.Val = val
 	}
+}
+
+func getNodeOnlyAttr(n *html.Node) string {
+	if len(n.Attr) != 1 {
+		return ""
+	}
+	return n.Attr[0].Key
 }

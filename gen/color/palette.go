@@ -9,6 +9,12 @@ var (
 		Orange:    Orange,
 		Pink:      Pink,
 		LightGray: LightGray,
+
+		HighlighterRed:    HighlighterUltraRed,
+		HighlighterGreen:  HighlighterFrenchLime,
+		HighlighterBlue:   HighlighterMayaBlue,
+		HighlighterYellow: HighlighterLaserLemon,
+		HighlighterOrange: HighlighterMacCheese,
 	}
 )
 
@@ -20,4 +26,10 @@ type Palette struct {
 	Orange    Color
 	Pink      Color
 	LightGray Color
+
+	HighlighterRed    Color
+	HighlighterGreen  Color
+	HighlighterBlue   Color
+	HighlighterYellow Color
+	HighlighterOrange Color
 }
