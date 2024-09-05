@@ -16,6 +16,8 @@ import (
 var (
 	htmlClosingTagPrefix = []byte("</")
 	htmlClosingTagMark   = []byte("</mark>")
+	htmlClosingTagIns    = []byte("</ins>")
+	htmlClosingTagDiv    = []byte("</div>")
 	htmlClosingTagSpan   = []byte("</span>")
 )
 
@@ -38,7 +40,8 @@ type closingTagMapping struct {
 }
 
 type Parser struct {
-	palette              map[string]string
+	palette              color.Palette
+	colorMap             map[string]string
 	interalHtmlRefSuffix string
 	lazyImageLoading     bool
 	closingTagQueue      []*closingTagMapping
@@ -49,21 +52,22 @@ func NewParser(
 	interalHtmlRefSuffix string,
 	lazyImageLoading bool,
 ) *Parser {
-	p := map[string]string{}
+	cm := map[string]string{}
 	types := reflect.TypeOf(palette)
 	vals := reflect.ValueOf(palette)
 	for i := 0; i < types.NumField(); i++ {
-		p[strings.ToLower(types.Field(i).Name)] = vals.Field(i).String()
+		cm[strings.ToLower(types.Field(i).Name)] = vals.Field(i).String()
 	}
 
-	p["name"] = string(palette.HighlighterRed)
-	p["b"] = string(palette.HighlighterGreen)
-	p["c"] = string(palette.HighlighterBlue)
-	p["d"] = string(palette.HighlighterYellow)
-	p["e"] = string(palette.HighlighterOrange)
+	cm["name"] = string(palette.HighlighterRed)
+	cm["b"] = string(palette.HighlighterGreen)
+	cm["c"] = string(palette.HighlighterBlue)
+	cm["d"] = string(palette.HighlighterYellow)
+	cm["e"] = string(palette.HighlighterOrange)
 
 	return &Parser{
-		palette:              p,
+		palette:              palette,
+		colorMap:             cm,
 		interalHtmlRefSuffix: interalHtmlRefSuffix,
 		lazyImageLoading:     lazyImageLoading,
 	}
@@ -98,7 +102,7 @@ func (p *Parser) buildMarkdownContent(
 	ht := newHeadingTracker()
 
 	ast.WalkFunc(root, func(node ast.Node, entering bool) ast.WalkStatus {
-		if true {
+		if false {
 			name := reflect.TypeOf(node).String()
 			if strings.Contains(name, "HTMLSpan") {
 				n := node.(*ast.HTMLSpan)
@@ -217,10 +221,10 @@ func (p *Parser) processHTMLTag(
 		}
 
 		tag.html = buf.Bytes()
-		fmt.Printf("updated %v\n", string(tag.html))
 		return nil
 	}
 
+	var closingTag []byte
 	switch node.Data {
 	case "img":
 		ref := getNodeAttr(node, "src")
@@ -241,22 +245,41 @@ func (p *Parser) processHTMLTag(
 
 		tag.ref = ref
 
+	case "ins":
+		switch getNodeAttr(node, "type") {
+		case "book_bib":
+			fmt.Printf("ins => %#v\n", node.Attr)
+			coverImgRef := getNodeAttr(node, "cover")
+			tag.html, closingTag = bookBibliography(
+				p.palette,
+				getNodeAttr(node, "title"),
+				coverImgRef,
+				getNodeAttr(node, "link"),
+				getNodeAttr(node, "author"),
+			)
+			p.closingTagQueue = append(p.closingTagQueue, &closingTagMapping{
+				from: htmlClosingTagIns,
+				to:   closingTag,
+			})
+			if !isExternalLink(coverImgRef) {
+				tag.ref = coverImgRef
+			}
+
+		default:
+		}
+
 	case "mark":
 		attrName := getNodeOnlyAttr(node)
 		if attrName == "" {
 			break
 		}
 
-		if color, found := p.palette[attrName]; found {
-			tag.html = []byte(fmt.Sprintf(
-				`<span style="background-color:%s;">`,
-				color,
-			))
+		if color, found := p.colorMap[attrName]; found {
+			tag.html, closingTag = highlight(color)
 			p.closingTagQueue = append(p.closingTagQueue, &closingTagMapping{
 				from: htmlClosingTagMark,
-				to:   htmlClosingTagSpan,
+				to:   closingTag,
 			})
-			break
 		}
 	}
 

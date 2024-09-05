@@ -9,6 +9,7 @@ var (
 		Orange:    Orange,
 		Pink:      Pink,
 		LightGray: LightGray,
+		DarkGray:  DarkGray,
 
 		HighlighterRed:    HighlighterUltraRed,
 		HighlighterGreen:  HighlighterFrenchLime,
@@ -26,6 +27,7 @@ type Palette struct {
 	Orange    Color
 	Pink      Color
 	LightGray Color
+	DarkGray  Color
 
 	HighlighterRed    Color
 	HighlighterGreen  Color

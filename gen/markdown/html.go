@@ -3,7 +3,6 @@ package markdown
 import (
 	"bytes"
 	"errors"
-	"fmt"
 
 	"golang.org/x/net/html"
 )
@@ -22,7 +21,6 @@ func parseTag(data []byte) (*html.Node, error) {
 		return nil, err
 	}
 
-	fmt.Printf("raw %v\n", string(data))
 	n := doc.FirstChild
 	if n == nil || n.Data != "html" {
 		return nil, ErrUnexpectedTagLoc
@@ -38,7 +36,6 @@ func parseTag(data []byte) (*html.Node, error) {
 		return nil, ErrUnexpectedTagLoc
 	}
 
-	fmt.Printf("node %#v\n", *n)
 	return n, nil
 }
 

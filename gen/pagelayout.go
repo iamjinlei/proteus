@@ -16,7 +16,7 @@ var (
 	.row {
 		display: grid;
 		grid-template-columns: 1fr 2fr 1fr;
-		font-size: 120%;
+		font-size: 1.2em;
 	}
 }
 @media (max-width: 1079px) {
