@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/iamjinlei/proteus/gen/color"
 	"github.com/iamjinlei/proteus/gen/markdown"
 )
 
@@ -23,7 +24,7 @@ func DefaultConfig(
 		Styles: markdown.Styles{
 			CodeBlock: fmt.Sprintf(
 				"padding:0.1em 1.5em;background-color:%v;",
-				cLightGray,
+				color.LightGray,
 			),
 		},
 	}

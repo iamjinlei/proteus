@@ -2,19 +2,9 @@ package gen
 
 import (
 	"html/template"
-)
 
-var (
-	defaultPalette = Palette{
-		LightGray: cLightGray,
-		Red:       cRed,
-	}
+	"github.com/iamjinlei/proteus/gen/color"
 )
-
-type Palette struct {
-	LightGray color
-	Red       color
-}
 
 type Dimensions struct {
 	CenterColWidth string
@@ -35,7 +25,7 @@ type Content struct {
 }
 
 type HtmlPageData struct {
-	Palette    Palette
+	Palette    color.Palette
 	Dimensions Dimensions
 	Content    Content
 }
@@ -48,7 +38,7 @@ func newHtmlPageData(
 	footer *HtmlComponent,
 ) *HtmlPageData {
 	return &HtmlPageData{
-		Palette: defaultPalette,
+		Palette: color.DefaultPalette,
 		Dimensions: Dimensions{
 			CenterColWidth: centerColWidth,
 		},
