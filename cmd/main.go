@@ -150,7 +150,7 @@ func main() {
 			fmt.Printf("Path = %v\n", r.URL.Path)
 			switch path {
 			case "", "/", "/index.html":
-				path = cfg.Entry
+				path = cfg.Entry + htmlSuffix
 			default:
 				if v := rassets[path]; v != "" {
 					path = v
@@ -164,8 +164,6 @@ func main() {
 				if !strings.HasSuffix(path, mdSuffix) {
 					path += mdSuffix
 				}
-			} else if strings.HasSuffix(path, mdSuffix) {
-				directCopy = false
 			}
 
 			path = filepath.Clean(filepath.Join(srcDir, path))

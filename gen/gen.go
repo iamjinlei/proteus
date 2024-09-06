@@ -10,17 +10,15 @@ import (
 )
 
 type Config struct {
-	InteralHtmlRefSuffix string
-	LazyImageLoading     bool
-	Styles               markdown.Styles
+	InternalRefHtmlSuffix string
+	LazyImageLoading      bool
+	Styles                markdown.Styles
 }
 
-func DefaultConfig(
-	internalHtmlRefSuffix string,
-) Config {
+func DefaultConfig(internalRefHtmlSuffix string) Config {
 	return Config{
-		InteralHtmlRefSuffix: internalHtmlRefSuffix,
-		LazyImageLoading:     true,
+		InternalRefHtmlSuffix: internalRefHtmlSuffix,
+		LazyImageLoading:      true,
 		Styles: markdown.Styles{
 			CodeBlock: fmt.Sprintf(
 				"padding:0.1em 1.5em;background-color:%v;",
@@ -44,13 +42,11 @@ func NewHtml(cfg Config) (*Html, error) {
 	}
 
 	return &Html{
-		cfg: cfg,
-		mdp: markdown.NewParser(
-			color.DefaultPalette,
-			cfg.InteralHtmlRefSuffix,
-			cfg.LazyImageLoading,
-		),
+		mdp: markdown.NewParser(),
 		mdr: markdown.NewRenderer(
+			color.DefaultPalette,
+			cfg.Styles,
+			cfg.InternalRefHtmlSuffix,
 			cfg.LazyImageLoading,
 		),
 		r: r,
@@ -73,10 +69,7 @@ func (h *Html) Gen(src []byte) (*Page, error) {
 		return nil, err
 	}
 
-	mdHtml, err := h.mdr.Render(
-		mdDoc.Root,
-		h.cfg.Styles,
-	)
+	mdHtml, err := h.mdr.Render(mdDoc.Root)
 	if err != nil {
 		return nil, err
 	}

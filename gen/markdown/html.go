@@ -3,12 +3,24 @@ package markdown
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"sort"
+	"strings"
 
 	"golang.org/x/net/html"
 )
 
 var (
 	ErrUnexpectedTagLoc = errors.New("unexpected tag location")
+)
+
+var (
+	htmlClosingTagPrefix = []byte("</")
+	htmlClosingTagMark   = []byte("</mark>")
+	htmlClosingTagIns    = []byte("</ins>")
+	htmlClosingTagDiv    = []byte("</div>")
+	htmlClosingTagSpan   = []byte("</span>")
+	htmlClosingTagASpan  = []byte("</a></span>")
 )
 
 func parseTag(data []byte) (*html.Node, error) {
@@ -39,7 +51,15 @@ func parseTag(data []byte) (*html.Node, error) {
 	return n, nil
 }
 
-func getNodeAttrPtr(n *html.Node, name string) *html.Attribute {
+func renderTag(n *html.Node) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := html.Render(&buf, n); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func getTagAttrPtr(n *html.Node, name string) *html.Attribute {
 	if n == nil {
 		return nil
 	}
@@ -53,8 +73,8 @@ func getNodeAttrPtr(n *html.Node, name string) *html.Attribute {
 	return nil
 }
 
-func getNodeAttr(n *html.Node, name string) string {
-	a := getNodeAttrPtr(n, name)
+func getTagAttr(n *html.Node, name string) string {
+	a := getTagAttrPtr(n, name)
 	if a == nil {
 		return ""
 	}
@@ -62,8 +82,8 @@ func getNodeAttr(n *html.Node, name string) string {
 	return a.Val
 }
 
-func setNodeAttr(n *html.Node, name, val string) {
-	a := getNodeAttrPtr(n, name)
+func setTagAttr(n *html.Node, name, val string) {
+	a := getTagAttrPtr(n, name)
 	if a == nil {
 		n.Attr = append(n.Attr, html.Attribute{Key: name, Val: val})
 	} else {
@@ -71,9 +91,49 @@ func setNodeAttr(n *html.Node, name, val string) {
 	}
 }
 
-func getNodeOnlyAttr(n *html.Node) string {
+func getTagOnlyAttr(n *html.Node) (string, string) {
 	if len(n.Attr) != 1 {
-		return ""
+		return "", ""
 	}
-	return n.Attr[0].Key
+	return n.Attr[0].Key, n.Attr[0].Val
+}
+
+func parseStyle(style string) map[string]string {
+	m := map[string]string{}
+	parts := strings.Split(style, ";")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		kv := strings.Split(part, ":")
+		if len(kv) != 2 {
+			continue
+		}
+
+		m[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+	}
+
+	return m
+}
+
+func encodeStyle(style map[string]string) string {
+	var keys []string
+	for k, _ := range style {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var arr []string
+	for _, k := range keys {
+		arr = append(arr, fmt.Sprintf("%s:%s", k, style[k]))
+	}
+
+	return strings.Join(arr, ";")
+}
+
+func isExternalLink(ref string) bool {
+	return strings.HasPrefix(ref, "http://") ||
+		strings.HasPrefix(ref, "https://")
 }

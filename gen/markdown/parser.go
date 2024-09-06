@@ -8,17 +8,6 @@ import (
 
 	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/parser"
-	"golang.org/x/net/html"
-
-	"github.com/iamjinlei/proteus/gen/color"
-)
-
-var (
-	htmlClosingTagPrefix = []byte("</")
-	htmlClosingTagMark   = []byte("</mark>")
-	htmlClosingTagIns    = []byte("</ins>")
-	htmlClosingTagDiv    = []byte("</div>")
-	htmlClosingTagSpan   = []byte("</span>")
 )
 
 type Doc struct {
@@ -34,43 +23,13 @@ type Heading struct {
 	Children []*Heading
 }
 
-type closingTagMapping struct {
-	from []byte
-	to   []byte
-}
-
+// Parser parses markdown document, extract and analyzes its content.
+// Parser should be read-only, not modifying any AST content.
 type Parser struct {
-	palette              color.Palette
-	colorMap             map[string]string
-	interalHtmlRefSuffix string
-	lazyImageLoading     bool
-	closingTagQueue      []*closingTagMapping
 }
 
-func NewParser(
-	palette color.Palette,
-	interalHtmlRefSuffix string,
-	lazyImageLoading bool,
-) *Parser {
-	cm := map[string]string{}
-	types := reflect.TypeOf(palette)
-	vals := reflect.ValueOf(palette)
-	for i := 0; i < types.NumField(); i++ {
-		cm[strings.ToLower(types.Field(i).Name)] = vals.Field(i).String()
-	}
-
-	cm["name"] = string(palette.HighlighterRed)
-	cm["b"] = string(palette.HighlighterGreen)
-	cm["c"] = string(palette.HighlighterBlue)
-	cm["d"] = string(palette.HighlighterYellow)
-	cm["e"] = string(palette.HighlighterOrange)
-
-	return &Parser{
-		palette:              palette,
-		colorMap:             cm,
-		interalHtmlRefSuffix: interalHtmlRefSuffix,
-		lazyImageLoading:     lazyImageLoading,
-	}
+func NewParser() *Parser {
+	return &Parser{}
 }
 
 // Link or reference used in the markdown can be relative the current file
@@ -84,15 +43,15 @@ func (p *Parser) Parse(src []byte) (*Doc, error) {
 	)
 	root := mdp.Parse(src)
 
-	c, err := p.buildMarkdownContent(root)
+	d, err := p.buildMarkdownDoc(root)
 	if err != nil {
 		return nil, err
 	}
 
-	return c, nil
+	return d, nil
 }
 
-func (p *Parser) buildMarkdownContent(
+func (p *Parser) buildMarkdownDoc(
 	root ast.Node,
 ) (*Doc, error) {
 	var walkErr error
@@ -135,33 +94,27 @@ func (p *Parser) buildMarkdownContent(
 
 		case *ast.Link:
 			ref := string(v.Destination)
-			if isExternalLink(ref) {
-				break
+			if !isExternalLink(ref) {
+				refs = append(refs, ref)
 			}
-
-			v.Destination = []byte(ref + p.interalHtmlRefSuffix)
-			refs = append(refs, ref)
 
 		case *ast.Image:
 			ref := string(v.Destination)
-			if isExternalLink(ref) {
-				break
+			if !isExternalLink(ref) {
+				refs = append(refs, ref)
 			}
-
-			refs = append(refs, ref)
 
 		case *ast.HTMLSpan:
 			// HTMLSpan is not limited to <span> tag, it actually represents
 			// a set of HTML tags, such as span, img, etc.
-			tag, err := p.processHTMLTag(v.Literal)
+			ref, err := p.processHTMLTag(v.Literal)
 			if err != nil {
 				walkErr = err
 				return ast.Terminate
 			}
 
-			v.Literal = tag.html
-			if tag.ref != "" {
-				refs = append(refs, tag.ref)
+			if ref != "" {
+				refs = append(refs, ref)
 			}
 		}
 
@@ -179,114 +132,38 @@ func (p *Parser) buildMarkdownContent(
 	}, nil
 }
 
-type htmlTag struct {
-	html []byte
-	ref  string
-}
-
 func (p *Parser) processHTMLTag(
 	data []byte,
-) (*htmlTag, error) {
-	tag := &htmlTag{
-		html: data,
-	}
-
+) (string, error) {
 	// Closing tag is also treated as entering.
 	if bytes.HasPrefix(data, htmlClosingTagPrefix) {
-		if len(p.closingTagQueue) > 0 {
-			m := p.closingTagQueue[0]
-			if bytes.Equal(data, m.from) {
-				tag.html = m.to
-				p.closingTagQueue = p.closingTagQueue[1:]
-			}
-		}
-
-		return tag, nil
+		return "", nil
 	}
 
 	node, err := parseTag(data)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	updateNode := func() error {
-		// NOTE(kmax): be careful, <span> and </span> are treated as
-		// different ast.Node. So we only parse <span>, but doc.Html
-		// would complete the closing </span>. If we don't handle it
-		// properly, it may end up with 2 </span>. Luckily, for now
-		// <img> does not have the closing </img> pair.
-		var buf bytes.Buffer
-		if err := html.Render(&buf, node); err != nil {
-			return err
-		}
-
-		tag.html = buf.Bytes()
-		return nil
-	}
-
-	var closingTag []byte
 	switch node.Data {
 	case "img":
-		ref := getNodeAttr(node, "src")
-		if ref == "" {
-			break
+		ref := getTagAttr(node, "src")
+		if ref == "" || isExternalLink(ref) {
+			return "", nil
 		}
-
-		if isExternalLink(ref) {
-			break
-		}
-
-		if p.lazyImageLoading {
-			setNodeAttr(node, "loading", "lazy")
-			if err := updateNode(); err != nil {
-				return nil, err
-			}
-		}
-
-		tag.ref = ref
+		return ref, nil
 
 	case "ins":
-		switch getNodeAttr(node, "type") {
+		switch getTagAttr(node, "type") {
 		case "book_bib":
-			fmt.Printf("ins => %#v\n", node.Attr)
-			coverImgRef := getNodeAttr(node, "cover")
-			tag.html, closingTag = bookBibliography(
-				p.palette,
-				getNodeAttr(node, "title"),
-				coverImgRef,
-				getNodeAttr(node, "link"),
-				getNodeAttr(node, "author"),
-			)
-			p.closingTagQueue = append(p.closingTagQueue, &closingTagMapping{
-				from: htmlClosingTagIns,
-				to:   closingTag,
-			})
+			coverImgRef := getTagAttr(node, "cover")
 			if !isExternalLink(coverImgRef) {
-				tag.ref = coverImgRef
+				return coverImgRef, nil
 			}
 
 		default:
 		}
-
-	case "mark":
-		attrName := getNodeOnlyAttr(node)
-		if attrName == "" {
-			break
-		}
-
-		if color, found := p.colorMap[attrName]; found {
-			tag.html, closingTag = highlight(color)
-			p.closingTagQueue = append(p.closingTagQueue, &closingTagMapping{
-				from: htmlClosingTagMark,
-				to:   closingTag,
-			})
-		}
 	}
 
-	return tag, nil
-}
-
-func isExternalLink(ref string) bool {
-	return strings.HasPrefix(ref, "http://") ||
-		strings.HasPrefix(ref, "https://")
+	return "", nil
 }
