@@ -61,6 +61,7 @@ func main() {
 
 	if *genFlag {
 		dstDir := filepath.Clean(*dstFlag)
+		sm := gen.NewSitemap(cfg.Domain)
 
 		refQueue := []string{
 			cfg.Entry,
@@ -92,11 +93,13 @@ func main() {
 				}
 			}
 
-			if !isMarkdown && !*forceFlag && !updateRequired(src, dst) {
+			if isMarkdown {
+				sm.Add(dst[len(dstDir):])
+			} else if !*forceFlag && !updateRequired(src, dst) {
 				continue
 			}
 
-			fmt.Printf("%v, %v -> %v\n", relPath, src, dst)
+			fmt.Printf("Processing %v -> %v\n", src, dst)
 
 			dstDir := filepath.Dir(dst)
 			if !dirSeen[dstDir] {
@@ -125,7 +128,7 @@ func main() {
 					// If the link path referenced in the markdown is relative
 					// to the markdown file location, update it to be relative
 					// to the src repo location before pushing into queue.
-					if !strings.HasPrefix(ref, relDir) {
+					if relDir != "" && !strings.HasPrefix(ref, relDir) {
 						ref = filepath.Join(relDir, ref)
 					}
 					refQueue = append(refQueue, ref)
@@ -136,6 +139,22 @@ func main() {
 
 			if err := os.WriteFile(dst, data, filePermMode); err != nil {
 				fmt.Printf("Error writing destination file %v: %v\n", src, err)
+				return
+			}
+		}
+
+		if cfg.EnableSitemap && cfg.Domain != "" {
+			data, err := sm.Gen()
+			if err != nil {
+				fmt.Printf("Error generating sitemap file: %v\n", err)
+				return
+			}
+			if err := os.WriteFile(
+				filepath.Join(dstDir, "sitemap.xml"),
+				data,
+				filePermMode,
+			); err != nil {
+				fmt.Printf("Error writing sitemap file: %v\n", err)
 				return
 			}
 		}

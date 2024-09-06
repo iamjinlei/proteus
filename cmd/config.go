@@ -1,6 +1,8 @@
 package main
 
 type Config struct {
-	Entry  string            `yaml:"entry"`
-	Assets map[string]string `yaml:"assets"`
+	Domain        string            `yaml:"domain"`
+	EnableSitemap bool              `yaml:"enable_sitemap"`
+	Entry         string            `yaml:"entry"`
+	Assets        map[string]string `yaml:"assets"`
 }
