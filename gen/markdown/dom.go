@@ -33,11 +33,19 @@ func bookBibliography(
 	)
 }
 
-func highlight(w io.Writer, content []byte, color string) {
+func highlight(w io.Writer, content string, color string) {
 	fmt.Fprintf(
 		w,
 		`<span style="background-color:%s;">%s</span>`,
 		color,
-		string(content),
+		content,
+	)
+}
+
+func link(content string, url string) string {
+	return fmt.Sprintf(
+		`<a href="%s" style="color:inherit;">%s</a>`,
+		url,
+		content,
 	)
 }

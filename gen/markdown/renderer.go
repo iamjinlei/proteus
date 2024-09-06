@@ -11,7 +11,6 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/html"
-	xhtml "golang.org/x/net/html"
 
 	"github.com/iamjinlei/proteus/gen/color"
 )
@@ -94,8 +93,6 @@ func (r *Renderer) Render(
 }
 
 type htmlTagBuf struct {
-	w          io.Writer
-	openingTag *xhtml.Node
 	buf        bytes.Buffer
 	closingTag []byte
 	fn         func(*htmlTagBuf) ast.WalkStatus
@@ -250,18 +247,16 @@ func (h *renderHook) processHTMLOpeningTag(
 		switch getTagAttr(tag, "type") {
 		case "book_bib":
 			h.tagBufStack = append(h.tagBufStack, &htmlTagBuf{
-				w:          w,
-				openingTag: tag,
 				closingTag: htmlClosingTagIns,
 				fn: func(b *htmlTagBuf) ast.WalkStatus {
 					// Content inside ins tag is ignored.
 					bookBibliography(
-						b.w,
+						w,
 						h.palette,
-						getTagAttr(b.openingTag, "title"),
-						getTagAttr(b.openingTag, "cover"),
-						getTagAttr(b.openingTag, "link"),
-						getTagAttr(b.openingTag, "author"),
+						getTagAttr(tag, "title"),
+						getTagAttr(tag, "cover"),
+						getTagAttr(tag, "link"),
+						getTagAttr(tag, "author"),
 					)
 					return ast.GoToNext
 				},
@@ -271,7 +266,7 @@ func (h *renderHook) processHTMLOpeningTag(
 		}
 
 	case "mark":
-		name, _ := getTagOnlyAttr(tag)
+		name, val := getTagOnlyAttr(tag)
 		if name == "" {
 			break
 		}
@@ -280,11 +275,16 @@ func (h *renderHook) processHTMLOpeningTag(
 			break
 		} else {
 			h.tagBufStack = append(h.tagBufStack, &htmlTagBuf{
-				w:          w,
-				openingTag: tag,
 				closingTag: htmlClosingTagMark,
 				fn: func(b *htmlTagBuf) ast.WalkStatus {
-					highlight(b.w, b.buf.Bytes(), color)
+					content := b.buf.String()
+					switch val {
+					case "baike", "baidu":
+						content = link(content, baiduBaike(content))
+					case "wikicn":
+						content = link(content, wikipediaCn(content))
+					}
+					highlight(w, content, color)
 					return ast.GoToNext
 				},
 			})

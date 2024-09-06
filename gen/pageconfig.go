@@ -129,7 +129,7 @@ func (c *pageConfig) nav() *HtmlComponent {
 	return &HtmlComponent{
 		Html: template.HTML(fmt.Sprintf(
 			`<span>%s</span><span style="margin-left:1em;">%s</span>`,
-			"\U0001f517",
+			"\U0001F517",
 			strings.Join(links, " | "),
 		)),
 	}
