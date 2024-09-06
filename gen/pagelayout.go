@@ -1,8 +1,7 @@
 package gen
 
 var (
-	imgBannerHeight   = "10em"
-	emptyBannerHeight = "2em"
+	imgBannerHeight = "10em"
 
 	defaultLayout = `
 <!DOCTYPE html>
@@ -26,28 +25,33 @@ var (
 		font-size: 60%;
 	}
 }
-	.row .header {
-		padding-bottom: 4em;
+	.col-middle {
+		padding-left: 1em;
+		padding-right: 1em;
 	}
-	.row .navi {
-		padding-left: 2em;
-		padding-right: 2em;
+	.row.header.nonempty {
+		padding-bottom: 1em;
 	}
-	.row .main {
-		padding-left: 2em;
-		padding-right: 2em;
-		border-left: 1px solid {{ .Palette.LightGray }};
-		border-right: 1px solid {{ .Palette.LightGray }};
+	.row.header.empty {
+		min-height: 6em;
+	}
+	.row.nav.nonempty {
+	}
+	.row.nav.empty {
+	}
+	.row.main {
   		height: 100%;
 		min-height: 50em;
+		margin-bottom: 5em;
+		padding: 1em;
 	}
-	.row .main-left {
+	.row.main .col-middle {
+		border: 1px solid {{ .Palette.LightGray }};
 	}
-	.row .footer {
-		margin-top: 4em;
+	.row.footer {
 	}
 	{{ .Content.Header.Css }}
-	{{ .Content.Navi.Css }}
+	{{ .Content.Nav.Css }}
 	{{ .Content.MainLeft.Css }}
 	{{ .Content.Main.Css }}
 	{{ .Content.Footer.Css }}
@@ -56,43 +60,57 @@ var (
 <body>
 	<script>
 		{{ .Content.Header.Js }}
-		{{ .Content.Navi.Js }}
+		{{ .Content.Nav.Js }}
 		{{ .Content.MainLeft.Js }}
 		{{ .Content.Main.Js }}
 		{{ .Content.Footer.Js }}
 	</script>
-	<div class="row">
+
+	{{ if .Content.Header.Html }}
+	<div class="row header nonempty">
 		<div class="col-left">
 		</div>
-		<div class="header">
+		<div class="col-middle">
 			{{ .Content.Header.Html }}
 		</div>
 		<div class="col-right">
 		</div>
 	</div>
-	<div class="row">
+	{{ else }}
+	<div class="row header empty">
+	</div>
+	{{ end }}
+
+	{{ if .Content.Nav.Html }}
+	<div class="row nav nonempty">
 		<div class="col-left">
 		</div>
-		<div class="navi">
-			{{ .Content.Navi.Html }}
+		<div class="col-middle">
+			{{ .Content.Nav.Html }}
 		</div>
 		<div class="col-right">
 		</div>
 	</div>
-	<div class="row">
-		<div class="main-left">
+	{{ else }}
+	<div class="row nav empty">
+	</div>
+	{{ end }}
+
+	<div class="row main">
+		<div class="col-left">
 			{{ .Content.MainLeft.Html }}
 		</div>
-		<div class="main">
+		<div class="col-middle">
 			{{ .Content.Main.Html }}
 		</div>
-		<div class="main-right">
+		<div class="col-right">
 		</div>
 	</div>
-	<div class="row">
+
+	<div class="row footer">
 		<div class="col-left">
 		</div>
-		<div class="footer">
+		<div class="col-middle">
 			{{ .Content.Footer.Html }}
 		</div>
 		<div class="col-right">

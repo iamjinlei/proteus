@@ -17,7 +17,7 @@ type HtmlComponent struct {
 
 type Content struct {
 	Header   *HtmlComponent
-	Navi     *HtmlComponent
+	Nav      *HtmlComponent
 	Main     *HtmlComponent
 	MainLeft *HtmlComponent
 	Footer   *HtmlComponent
@@ -31,7 +31,7 @@ type TemplateData struct {
 
 func newTemplateData(
 	header *HtmlComponent,
-	navi *HtmlComponent,
+	nav *HtmlComponent,
 	main *HtmlComponent,
 	mainLeft *HtmlComponent,
 	footer *HtmlComponent,
@@ -41,7 +41,7 @@ func newTemplateData(
 		Dimensions: Dimensions{},
 		Content: Content{
 			Header:   header,
-			Navi:     navi,
+			Nav:      nav,
 			Main:     main,
 			MainLeft: mainLeft,
 			Footer:   footer,

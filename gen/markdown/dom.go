@@ -14,7 +14,7 @@ func bookBibliography(
 	author string,
 ) ([]byte, []byte) {
 	return []byte(fmt.Sprintf(`
-<div style="width:100%%;margin-top:50px;margin-bottom:100px;border-bottom: 2px solid %s;display:grid;grid-template-columns: 1fr 2fr;">
+<div style="width:100%%;margin-bottom:100px;border-bottom: 2px solid %s;display:grid;grid-template-columns: 1fr 2fr;">
 	<span><a href="%s"><img src="%s" style="width:100%%"></a></span>
 	<span style="padding-left:40px;">
 		<div style="font-size:3em;font-weight: bold;">%s</div>

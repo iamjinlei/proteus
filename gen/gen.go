@@ -99,7 +99,7 @@ func (h *Html) Gen(src []byte) (*Page, error) {
 		w,
 		newTemplateData(
 			pCfg.header(),
-			pCfg.navi(),
+			pCfg.nav(),
 			&HtmlComponent{
 				Html: mdHtml,
 			},

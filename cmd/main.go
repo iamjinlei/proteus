@@ -92,7 +92,7 @@ func main() {
 				}
 			}
 
-			if !*forceFlag && !updateRequired(src, dst) {
+			if !isMarkdown && !*forceFlag && !updateRequired(src, dst) {
 				continue
 			}
 

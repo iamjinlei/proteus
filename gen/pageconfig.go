@@ -2,6 +2,7 @@ package gen
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"strings"
@@ -10,27 +11,33 @@ import (
 )
 
 var (
-	pageConfigDivider = []byte("+++\n")
+	markdownCommentOpen  = []byte("<!---")
+	markdownCommentClose = []byte("--->")
+
+	ErrBrokenCommentTag = errors.New("broken comment tag pair")
 )
 
 func extractPageConfig(src []byte) (*pageConfig, []byte, error) {
-	left := bytes.Index(src, pageConfigDivider)
-	if left == -1 {
+	src = bytes.TrimSpace(src)
+	if !bytes.HasPrefix(src, markdownCommentOpen) {
 		return newPageConfig(nil), src, nil
 	}
 
-	s := src[left+len(pageConfigDivider):]
-	right := bytes.Index(s, pageConfigDivider)
+	right := bytes.Index(src, markdownCommentClose)
 	if right == -1 {
-		return newPageConfig(nil), src, nil
+		return nil, nil, ErrBrokenCommentTag
 	}
 
 	var cfg map[string]interface{}
-	if err := yaml.Unmarshal(s[:right], &cfg); err != nil {
+	if err := yaml.Unmarshal(
+		src[len(markdownCommentOpen):right],
+		&cfg,
+	); err != nil {
 		return nil, nil, err
 	}
 
-	return newPageConfig(cfg), s[right+len(pageConfigDivider):], nil
+	content := bytes.TrimSpace(src[right+len(markdownCommentClose):])
+	return newPageConfig(cfg), content, nil
 }
 
 type pageConfig struct {
@@ -73,10 +80,7 @@ func (c *pageConfig) leftPane() string {
 func (c *pageConfig) header() *HtmlComponent {
 	if c.m["banner"] == nil {
 		return &HtmlComponent{
-			Html: template.HTML(fmt.Sprintf(
-				`<div style="width:100%%;height:%s;"></div>`,
-				emptyBannerHeight,
-			)),
+			Html: template.HTML(""),
 		}
 	}
 
@@ -89,14 +93,14 @@ func (c *pageConfig) header() *HtmlComponent {
 	}
 }
 
-func (c *pageConfig) navi() *HtmlComponent {
-	if c.m["navi"] == nil {
+func (c *pageConfig) nav() *HtmlComponent {
+	if c.m["nav"] == nil {
 		return &HtmlComponent{
 			Html: template.HTML(""),
 		}
 	}
 
-	arr, ok := c.m["navi"].([]interface{})
+	arr, ok := c.m["nav"].([]interface{})
 	if !ok {
 		return &HtmlComponent{
 			Html: template.HTML(""),
@@ -135,7 +139,7 @@ func (c *pageConfig) footer() *HtmlComponent {
 	return &HtmlComponent{
 		Html: template.HTML(`
 	<div style="max-width:fit-content;margin-inline:auto;">
-		<span style="font-size: 80%;">Generated from markdown by
+		<span style="font-size: 0.8em;">Generated from markdown by
 		<a href="https://github.com/iamjinlei/proteus">proteus</a>
 		</span>
 		</div>
