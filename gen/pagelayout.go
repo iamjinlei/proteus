@@ -7,6 +7,9 @@ var (
 <!DOCTYPE html>
 <html>
 <head>
+{{ if .CanonicalDomain }}
+<link rel="canonical" href="{{ .CanonicalDomain }}/{{ .RelPath }}"/>
+{{ end }}
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <meta content="utf-8" http-equiv="encoding">
 <title></title>

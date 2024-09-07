@@ -52,8 +52,11 @@ func main() {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
 	}
-
-	g, err := gen.NewHtml(gen.DefaultConfig(htmlSuffix))
+	fmt.Printf("yaml domain = %v\n", cfg.Domain)
+	g, err := gen.NewHtml(gen.DefaultConfig(
+		cfg.Domain,
+		htmlSuffix,
+	))
 	if err != nil {
 		fmt.Printf("Error creating html renderer: %v\n", err)
 		return
@@ -93,8 +96,9 @@ func main() {
 				}
 			}
 
+			relPath = dst[len(dstDir):]
 			if isMarkdown {
-				sm.Add(dst[len(dstDir):])
+				sm.Add(relPath)
 			} else if !*forceFlag && !updateRequired(src, dst) {
 				continue
 			}
@@ -117,7 +121,7 @@ func main() {
 			}
 
 			if isMarkdown {
-				page, err := g.Gen(data)
+				page, err := g.Gen(relPath, data)
 				if err != nil {
 					fmt.Printf("Error generating HTML page: %v\n", err)
 					return
@@ -203,7 +207,7 @@ func main() {
 			if directCopy {
 				w.Write(data)
 			} else {
-				page, err := g.Gen(data)
+				page, err := g.Gen(path, data)
 				if err != nil {
 					w.Write([]byte(fmt.Sprintf("Error generating html page: %v", err)))
 				} else {

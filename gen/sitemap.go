@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"net/url"
 	"sort"
-	"strings"
 	"time"
 )
 
@@ -20,19 +19,14 @@ type UrlSet struct {
 }
 
 type Sitemap struct {
-	base   string
+	domain string
 	rels   []string
 	UrlSet UrlSet `xml:"urlset"`
 }
 
-func NewSitemap(base string) *Sitemap {
-	if !strings.HasPrefix(base, "http://") &&
-		!strings.HasPrefix(base, "https://") {
-		base = "https://" + base
-	}
-
+func NewSitemap(domain string) *Sitemap {
 	return &Sitemap{
-		base: base,
+		domain: normalizeDomain(domain),
 		UrlSet: UrlSet{
 			Xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9",
 		},
@@ -40,17 +34,14 @@ func NewSitemap(base string) *Sitemap {
 }
 
 func (m *Sitemap) Add(rel string) {
-	for len(rel) > 0 && rel[0] == '/' {
-		rel = rel[1:]
-	}
-	m.rels = append(m.rels, rel)
+	m.rels = append(m.rels, normalizeRelPath(rel))
 }
 
 func (m *Sitemap) Gen() ([]byte, error) {
 	now := time.Now()
 	sort.Strings(m.rels)
 	for _, rel := range m.rels {
-		loc, _ := url.JoinPath(m.base, rel)
+		loc, _ := url.JoinPath(m.domain, rel)
 		m.UrlSet.Urls = append(m.UrlSet.Urls, &SitemapURL{
 			Loc:     loc,
 			LastMod: now,

@@ -24,12 +24,16 @@ type Content struct {
 }
 
 type TemplateData struct {
-	Palette    color.Palette
-	Dimensions Dimensions
-	Content    Content
+	CanonicalDomain string
+	RelPath         string
+	Palette         color.Palette
+	Dimensions      Dimensions
+	Content         Content
 }
 
 func newTemplateData(
+	domain string,
+	relPath string,
 	header *HtmlComponent,
 	nav *HtmlComponent,
 	main *HtmlComponent,
@@ -37,8 +41,10 @@ func newTemplateData(
 	footer *HtmlComponent,
 ) *TemplateData {
 	return &TemplateData{
-		Palette:    color.DefaultPalette,
-		Dimensions: Dimensions{},
+		CanonicalDomain: normalizeDomain(domain),
+		RelPath:         normalizeRelPath(relPath),
+		Palette:         color.DefaultPalette,
+		Dimensions:      Dimensions{},
 		Content: Content{
 			Header:   header,
 			Nav:      nav,

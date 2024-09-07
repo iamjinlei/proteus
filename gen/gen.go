@@ -10,13 +10,18 @@ import (
 )
 
 type Config struct {
+	Domain                string
 	InternalRefHtmlSuffix string
 	LazyImageLoading      bool
 	Styles                markdown.Styles
 }
 
-func DefaultConfig(internalRefHtmlSuffix string) Config {
+func DefaultConfig(
+	domain string,
+	internalRefHtmlSuffix string,
+) Config {
 	return Config{
+		Domain:                domain,
 		InternalRefHtmlSuffix: internalRefHtmlSuffix,
 		LazyImageLoading:      true,
 		Styles: markdown.Styles{
@@ -42,6 +47,7 @@ func NewHtml(cfg Config) (*Html, error) {
 	}
 
 	return &Html{
+		cfg: cfg,
 		mdp: markdown.NewParser(),
 		mdr: markdown.NewRenderer(
 			color.DefaultPalette,
@@ -58,7 +64,7 @@ type Page struct {
 	Refs []string
 }
 
-func (h *Html) Gen(src []byte) (*Page, error) {
+func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 	pCfg, md, err := extractPageConfig(src)
 	if err != nil {
 		return nil, err
@@ -86,11 +92,14 @@ func (h *Html) Gen(src []byte) (*Page, error) {
 		refs = append(refs, pCfg.bannerRef())
 	}
 
+	fmt.Printf("domain = %v\n", h.cfg.Domain)
 	var b bytes.Buffer
 	w := bufio.NewWriter(&b)
 	if err := h.r.render(
 		w,
 		newTemplateData(
+			h.cfg.Domain,
+			relPath,
 			pCfg.header(),
 			pCfg.nav(),
 			&HtmlComponent{
