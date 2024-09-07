@@ -56,6 +56,7 @@ var (
 	{{ .Content.Header.Css }}
 	{{ .Content.Nav.Css }}
 	{{ .Content.MainLeft.Css }}
+	{{ .Content.MainRight.Css }}
 	{{ .Content.Main.Css }}
 	{{ .Content.Footer.Css }}
 </style>
@@ -65,6 +66,7 @@ var (
 		{{ .Content.Header.Js }}
 		{{ .Content.Nav.Js }}
 		{{ .Content.MainLeft.Js }}
+		{{ .Content.MainRight.Js }}
 		{{ .Content.Main.Js }}
 		{{ .Content.Footer.Js }}
 	</script>
@@ -107,6 +109,7 @@ var (
 			{{ .Content.Main.Html }}
 		</div>
 		<div class="col-right">
+			{{ .Content.MainRight.Html }}
 		</div>
 	</div>
 

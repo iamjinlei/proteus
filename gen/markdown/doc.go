@@ -9,6 +9,7 @@ type Doc struct {
 	Html         template.HTML
 	InternalRefs []string
 	Headings     []*Heading
+	Keywords     *Keywords
 }
 
 type Heading struct {

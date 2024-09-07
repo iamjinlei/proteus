@@ -13,6 +13,7 @@ import (
 	"github.com/gomarkdown/markdown/html"
 
 	"github.com/iamjinlei/proteus/gen/color"
+	"github.com/iamjinlei/proteus/gen/keyword"
 )
 
 const (
@@ -24,10 +25,18 @@ type Styles struct {
 	CodeBlock string
 }
 
+var (
+	defaultStyles = Styles{
+		CodeBlock: fmt.Sprintf(
+			"padding:0.1em 1.5em;background-color:%v;",
+			color.LightGray,
+		),
+	}
+)
+
 type Renderer struct {
 	palette               color.Palette
-	colorMap              map[string]string
-	styles                Styles
+	colorMap              map[string]color.Color
 	internalRefHtmlSuffix string
 	lazyImageLoading      bool
 	state                 *renderState
@@ -35,27 +44,25 @@ type Renderer struct {
 
 func NewRenderer(
 	palette color.Palette,
-	styles Styles,
 	internalRefHtmlSuffix string,
 	lazyImageLoading bool,
 ) *Renderer {
-	cm := map[string]string{}
+	cm := map[string]color.Color{}
 	types := reflect.TypeOf(palette)
 	vals := reflect.ValueOf(palette)
 	for i := 0; i < types.NumField(); i++ {
-		cm[strings.ToLower(types.Field(i).Name)] = vals.Field(i).String()
+		cm[strings.ToLower(types.Field(i).Name)] = vals.Field(i).Interface().(color.Color)
 	}
 
-	cm["name"] = string(palette.HighlighterRed)
-	cm["b"] = string(palette.HighlighterGreen)
-	cm["c"] = string(palette.HighlighterBlue)
-	cm["d"] = string(palette.HighlighterYellow)
-	cm["e"] = string(palette.HighlighterOrange)
+	cm["name"] = palette.HighlighterRed
+	cm["b"] = palette.HighlighterGreen
+	cm["c"] = palette.HighlighterBlue
+	cm["d"] = palette.HighlighterYellow
+	cm["e"] = palette.HighlighterOrange
 
 	return &Renderer{
 		palette:               palette,
 		colorMap:              cm,
-		styles:                styles,
 		internalRefHtmlSuffix: internalRefHtmlSuffix,
 		lazyImageLoading:      lazyImageLoading,
 	}
@@ -67,6 +74,7 @@ type renderState struct {
 	htmlTagStack *htmlTagStack
 	internalRefs []string
 	ht           *headingTracker
+	kws          *Keywords
 	err          error
 }
 
@@ -77,14 +85,15 @@ func (r *Renderer) Render(root ast.Node) (*Doc, error) {
 	}
 
 	r.state = &renderState{
-		htmlTagStack: newHtmlTagStack(),
-		ht:           newHeadingTracker(),
 		renderer: html.NewRenderer(
 			html.RendererOptions{
 				Flags:          flags,
 				RenderNodeHook: r.render,
 			},
 		),
+		htmlTagStack: newHtmlTagStack(),
+		ht:           newHeadingTracker(),
+		kws:          newKeywords(r.colorMap),
 	}
 
 	// Traverse AST using ast.WalkFunc()
@@ -100,6 +109,7 @@ func (r *Renderer) Render(root ast.Node) (*Doc, error) {
 		Html:         template.HTML(data),
 		InternalRefs: rs.internalRefs,
 		Headings:     rs.ht.getHeadings(),
+		Keywords:     rs.kws,
 	}, nil
 }
 
@@ -216,7 +226,7 @@ func (r *Renderer) renderCodeBlock(
 	n *ast.CodeBlock,
 	entering bool,
 ) ast.WalkStatus {
-	fmt.Fprintf(w, `<div style="%v">`, r.styles.CodeBlock)
+	fmt.Fprintf(w, `<div style="%v">`, defaultStyles.CodeBlock)
 	r.state.renderer.CodeBlock(w, n)
 	fmt.Fprintf(w, "</div>")
 	return ast.GoToNext
@@ -281,25 +291,32 @@ func (r *Renderer) processHTMLOpeningTag(
 		}
 
 	case "mark":
-		name, val := getTagOnlyAttr(tag)
-		if name == "" {
+		kind, val := getTagOnlyAttr(tag)
+		if kind == "" {
 			break
 		}
 
-		if color, found := r.colorMap[name]; !found {
+		if color, found := r.colorMap[kind]; !found {
 			break
 		} else {
 			r.state.htmlTagStack.push(
 				htmlClosingTagMark,
 				func(b *htmlTag) ast.WalkStatus {
 					content := b.buf.String()
+					id := ""
+					if keyword.ValidType(kind) {
+						id = hash20([]byte(content))
+						r.state.kws.add(keyword.Type(kind), content, id)
+					}
+
 					switch val {
 					case "baike", "baidu":
 						content = link(content, baiduBaike(content))
 					case "wikicn":
 						content = link(content, wikipediaCn(content))
 					}
-					highlight(w, content, color)
+					highlight(w, id, content, color)
+
 					return ast.GoToNext
 				},
 			)

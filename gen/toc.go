@@ -41,6 +41,22 @@ const (
 	cursor: pointer;
 }
 `)
+
+	defaultToJs = template.JS(`
+function toc_tgl(id) {
+	var btn = document.getElementById(id);
+	var c = document.getElementById(id.replace("tgl", "div"));
+	console.log(btn.innerHTML);
+	console.log(id.replace("tgl", "div"));
+	if (btn.innerHTML === "[+]") {
+	   btn.innerHTML = "[-]";
+	   c.style.display = "inline";
+	} else {
+	   btn.innerHTML = "[+]";
+	   c.style.display = "none";
+	}
+}
+`)
 )
 
 func renderToC(
@@ -57,21 +73,7 @@ func renderToC(
 			renderHeadingList(hs, "", 0, maxDepth),
 		)),
 		Css: defaultToCCss,
-		Js: template.JS(`
-function toc_tgl(id) {
-	var btn = document.getElementById(id);
-	var c = document.getElementById(id.replace("tgl", "div"));
-console.log(btn.innerHTML);
-console.log(id.replace("tgl", "div"));
-	if (btn.innerHTML === "[+]") {
-	   btn.innerHTML = "[-]";
-	   c.style.display = "inline";
-	} else {
-	   btn.innerHTML = "[+]";
-	   c.style.display = "none";
-	}
-}
-`),
+		Js:  defaultToJs,
 	}
 }
 

@@ -77,6 +77,18 @@ func (c *pageConfig) leftPane() string {
 	return t
 }
 
+func (c *pageConfig) rightPane() string {
+	if c.m["right_pane"] == nil {
+		return ""
+	}
+
+	t, ok := c.m["right_pane"].(string)
+	if !ok {
+		return ""
+	}
+	return t
+}
+
 func (c *pageConfig) header() *HtmlComponent {
 	if c.m["banner"] == nil {
 		return &HtmlComponent{

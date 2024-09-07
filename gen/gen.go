@@ -3,7 +3,6 @@ package gen
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 
 	"github.com/iamjinlei/proteus/gen/color"
 	"github.com/iamjinlei/proteus/gen/markdown"
@@ -13,7 +12,7 @@ type Config struct {
 	Domain                string
 	InternalRefHtmlSuffix string
 	LazyImageLoading      bool
-	Styles                markdown.Styles
+	Palette               color.Palette
 }
 
 func DefaultConfig(
@@ -24,12 +23,7 @@ func DefaultConfig(
 		Domain:                domain,
 		InternalRefHtmlSuffix: internalRefHtmlSuffix,
 		LazyImageLoading:      true,
-		Styles: markdown.Styles{
-			CodeBlock: fmt.Sprintf(
-				"padding:0.1em 1.5em;background-color:%v;",
-				color.LightGray,
-			),
-		},
+		Palette:               color.DefaultPalette,
 	}
 }
 
@@ -50,8 +44,7 @@ func NewHtml(cfg Config) (*Html, error) {
 		cfg: cfg,
 		mdp: markdown.NewParser(),
 		mdr: markdown.NewRenderer(
-			color.DefaultPalette,
-			cfg.Styles,
+			cfg.Palette,
 			cfg.InternalRefHtmlSuffix,
 			cfg.LazyImageLoading,
 		),
@@ -75,13 +68,6 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 		return nil, err
 	}
 
-	var toc *HtmlComponent
-	if pCfg.leftPane() == "toc" {
-		toc = renderToC(mdDoc.Headings, 3)
-	} else {
-		toc = &HtmlComponent{}
-	}
-
 	refs := mdDoc.InternalRefs
 	if pCfg.bannerRef() != "" {
 		refs = append(refs, pCfg.bannerRef())
@@ -99,7 +85,8 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 			&HtmlComponent{
 				Html: mdDoc.Html,
 			},
-			toc,
+			renderComponent(pCfg.leftPane(), mdDoc, h.cfg.Palette),
+			renderComponent(pCfg.rightPane(), mdDoc, h.cfg.Palette),
 			pCfg.footer(),
 		),
 	); err != nil {
@@ -114,4 +101,19 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 		Html:         b.Bytes(),
 		InternalRefs: refs,
 	}, nil
+}
+
+func renderComponent(
+	kind string,
+	doc *markdown.Doc,
+	palette color.Palette,
+) *HtmlComponent {
+	switch kind {
+	case "toc":
+		return renderToC(doc.Headings, 3)
+	case "kws":
+		return renderKeywords(doc.Keywords, palette)
+	}
+
+	return &HtmlComponent{}
 }

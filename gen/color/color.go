@@ -18,3 +18,7 @@ const (
 	HighlighterLaserLemon Color = "#FFFF77"
 	HighlighterMacCheese  Color = "#FFAE77"
 )
+
+func (c Color) Hex() string {
+	return string(c)
+}

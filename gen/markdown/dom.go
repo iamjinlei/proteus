@@ -33,11 +33,15 @@ func bookBibliography(
 	)
 }
 
-func highlight(w io.Writer, content string, color string) {
+func highlight(w io.Writer, id, content string, color color.Color) {
+	if id != "" {
+		id = fmt.Sprintf(`id="%s"`, id)
+	}
 	fmt.Fprintf(
 		w,
-		`<span style="background-color:%s;">%s</span>`,
-		color,
+		`<span %s style="background-color:%s;">%s</span>`,
+		id,
+		color.Hex(),
 		content,
 	)
 }

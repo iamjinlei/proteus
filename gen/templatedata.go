@@ -16,11 +16,12 @@ type HtmlComponent struct {
 }
 
 type Content struct {
-	Header   *HtmlComponent
-	Nav      *HtmlComponent
-	Main     *HtmlComponent
-	MainLeft *HtmlComponent
-	Footer   *HtmlComponent
+	Header    *HtmlComponent
+	Nav       *HtmlComponent
+	Main      *HtmlComponent
+	MainLeft  *HtmlComponent
+	MainRight *HtmlComponent
+	Footer    *HtmlComponent
 }
 
 type TemplateData struct {
@@ -38,6 +39,7 @@ func newTemplateData(
 	nav *HtmlComponent,
 	main *HtmlComponent,
 	mainLeft *HtmlComponent,
+	mainRight *HtmlComponent,
 	footer *HtmlComponent,
 ) *TemplateData {
 	return &TemplateData{
@@ -46,11 +48,12 @@ func newTemplateData(
 		Palette:         color.DefaultPalette,
 		Dimensions:      Dimensions{},
 		Content: Content{
-			Header:   header,
-			Nav:      nav,
-			Main:     main,
-			MainLeft: mainLeft,
-			Footer:   footer,
+			Header:    header,
+			Nav:       nav,
+			Main:      main,
+			MainLeft:  mainLeft,
+			MainRight: mainRight,
+			Footer:    footer,
 		},
 	}
 }
