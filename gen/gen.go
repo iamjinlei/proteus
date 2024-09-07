@@ -60,8 +60,8 @@ func NewHtml(cfg Config) (*Html, error) {
 }
 
 type Page struct {
-	Html []byte
-	Refs []string
+	Html         []byte
+	InternalRefs []string
 }
 
 func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
@@ -70,12 +70,7 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 		return nil, err
 	}
 
-	mdDoc, err := h.mdp.Parse(md)
-	if err != nil {
-		return nil, err
-	}
-
-	mdHtml, err := h.mdr.Render(mdDoc.Root)
+	mdDoc, err := h.mdr.Render(h.mdp.Parse(md))
 	if err != nil {
 		return nil, err
 	}
@@ -87,12 +82,11 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 		toc = &HtmlComponent{}
 	}
 
-	refs := mdDoc.Refs
+	refs := mdDoc.InternalRefs
 	if pCfg.bannerRef() != "" {
 		refs = append(refs, pCfg.bannerRef())
 	}
 
-	fmt.Printf("domain = %v\n", h.cfg.Domain)
 	var b bytes.Buffer
 	w := bufio.NewWriter(&b)
 	if err := h.r.render(
@@ -103,7 +97,7 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 			pCfg.header(),
 			pCfg.nav(),
 			&HtmlComponent{
-				Html: mdHtml,
+				Html: mdDoc.Html,
 			},
 			toc,
 			pCfg.footer(),
@@ -117,7 +111,7 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 	}
 
 	return &Page{
-		Html: b.Bytes(),
-		Refs: refs,
+		Html:         b.Bytes(),
+		InternalRefs: refs,
 	}, nil
 }

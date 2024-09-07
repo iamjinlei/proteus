@@ -30,6 +30,7 @@ type Renderer struct {
 	styles                Styles
 	internalRefHtmlSuffix string
 	lazyImageLoading      bool
+	state                 *renderState
 }
 
 func NewRenderer(
@@ -60,66 +61,54 @@ func NewRenderer(
 	}
 }
 
-func (r *Renderer) Render(
-	root ast.Node,
-) (template.HTML, error) {
+type renderState struct {
+	renderer     *html.Renderer
+	reentry      bool
+	htmlTagStack *htmlTagStack
+	internalRefs []string
+	ht           *headingTracker
+	err          error
+}
+
+func (r *Renderer) Render(root ast.Node) (*Doc, error) {
 	flags := html.CommonFlags | html.HrefTargetBlank
 	if r.lazyImageLoading {
 		flags |= html.LazyLoadImages
 	}
 
-	rh := &renderHook{
-		palette:               r.palette,
-		colorMap:              r.colorMap,
-		styles:                r.styles,
-		internalRefHtmlSuffix: r.internalRefHtmlSuffix,
-		lazyImageLoading:      r.lazyImageLoading,
+	r.state = &renderState{
+		htmlTagStack: newHtmlTagStack(),
+		ht:           newHeadingTracker(),
+		renderer: html.NewRenderer(
+			html.RendererOptions{
+				Flags:          flags,
+				RenderNodeHook: r.render,
+			},
+		),
 	}
 
-	htmlRenderer := html.NewRenderer(
-		html.RendererOptions{
-			Flags:          flags,
-			RenderNodeHook: rh.render,
-		},
-	)
-	rh.r = htmlRenderer
+	// Traverse AST using ast.WalkFunc()
+	data := markdown.Render(root, r.state.renderer)
+	rs := r.state
+	r.state = nil
 
-	data := markdown.Render(root, htmlRenderer)
-	if rh.err != nil {
-		return template.HTML(""), rh.err
+	if rs.err != nil {
+		return nil, rs.err
 	}
 
-	return template.HTML(data), nil
+	return &Doc{
+		Html:         template.HTML(data),
+		InternalRefs: rs.internalRefs,
+		Headings:     rs.ht.getHeadings(),
+	}, nil
 }
 
-type htmlTagBuf struct {
-	buf        bytes.Buffer
-	closingTag []byte
-	fn         func(*htmlTagBuf) ast.WalkStatus
-}
-
-func (b *htmlTagBuf) close() ast.WalkStatus {
-	return b.fn(b)
-}
-
-type renderHook struct {
-	palette               color.Palette
-	colorMap              map[string]string
-	styles                Styles
-	internalRefHtmlSuffix string
-	lazyImageLoading      bool
-	r                     *html.Renderer
-	reentry               bool
-	tagBufStack           []*htmlTagBuf
-	err                   error
-}
-
-func (h *renderHook) render(
+func (r *Renderer) render(
 	w io.Writer,
 	n ast.Node,
 	entering bool,
 ) (ast.WalkStatus, bool) {
-	if h.reentry {
+	if r.state.reentry {
 		return ast.GoToNext, renderNode
 	}
 
@@ -141,25 +130,51 @@ func (h *renderHook) render(
 	}
 
 	// If tag buf stack is not empty, write to the top of the stack.
-	if len(h.tagBufStack) > 0 {
-		w = &h.tagBufStack[len(h.tagBufStack)-1].buf
+	if !r.state.htmlTagStack.empty() {
+		w = &r.state.htmlTagStack.top().buf
 	}
 
 	// A non-reentry call should never return false to use default Render
-	// which uses the default writer. Always use h.renderNodeDefault() to
+	// which uses the default writer. Always use r.renderNodeDefault() to
 	// trigger a reentry call to the default Render, with picked writer.
 	switch v := n.(type) {
+	case *ast.Heading:
+		if !entering {
+			break
+		}
+
+		if len(v.Children) != 1 {
+			break
+		}
+
+		r.state.ht.add(v.Level, v.HeadingID, string(v.Children[0].(*ast.Text).Literal))
+
 	case *ast.CodeBlock:
-		return h.renderCodeBlock(w, v, entering), renderSkip
+		return r.renderCodeBlock(w, v, entering), renderSkip
 
 	case *ast.Link:
+		if !entering {
+			break
+		}
+
 		ref := string(v.Destination)
 		if !isExternalLink(ref) {
-			v.Destination = []byte(ref + h.internalRefHtmlSuffix)
+			r.state.internalRefs = append(r.state.internalRefs, ref)
+			v.Destination = []byte(ref + r.internalRefHtmlSuffix)
+		}
+
+	case *ast.Image:
+		if !entering {
+			break
+		}
+
+		ref := string(v.Destination)
+		if !isExternalLink(ref) {
+			r.state.internalRefs = append(r.state.internalRefs, ref)
 		}
 
 	case *ast.HTMLSpan:
-		return h.processHTMLTag(w, v, entering), renderSkip
+		return r.processHTMLTag(w, v, entering), renderSkip
 	}
 
 	/*
@@ -182,62 +197,62 @@ func (h *renderHook) render(
 	 *   |
 	 *   +-> Skip ## rendering ##
 	 */
-	return h.renderNodeDefault(w, n, entering), renderSkip
+	return r.renderNodeDefault(w, n, entering), renderSkip
 }
 
-func (h *renderHook) renderNodeDefault(
+func (r *Renderer) renderNodeDefault(
 	w io.Writer,
 	n ast.Node,
 	entering bool,
 ) ast.WalkStatus {
-	h.reentry = true
-	s := h.r.RenderNode(w, n, entering)
-	h.reentry = false
+	r.state.reentry = true
+	s := r.state.renderer.RenderNode(w, n, entering)
+	r.state.reentry = false
 	return s
 }
 
-func (h *renderHook) renderCodeBlock(
+func (r *Renderer) renderCodeBlock(
 	w io.Writer,
 	n *ast.CodeBlock,
 	entering bool,
 ) ast.WalkStatus {
-	fmt.Fprintf(w, `<div style="%v">`, h.styles.CodeBlock)
-	h.r.CodeBlock(w, n)
+	fmt.Fprintf(w, `<div style="%v">`, r.styles.CodeBlock)
+	r.state.renderer.CodeBlock(w, n)
 	fmt.Fprintf(w, "</div>")
 	return ast.GoToNext
 }
 
-func (h *renderHook) processHTMLTag(
+func (r *Renderer) processHTMLTag(
 	w io.Writer,
 	n *ast.HTMLSpan,
 	entering bool,
 ) ast.WalkStatus {
-	if bytes.HasPrefix(n.Literal, htmlClosingTagPrefix) {
-		return h.processHTMLClosingTag(w, n, entering)
+	if !bytes.HasPrefix(n.Literal, htmlClosingTagPrefix) {
+		return r.processHTMLOpeningTag(w, n, entering)
 	}
-	return h.processHTMLOpeningTag(w, n, entering)
+	return r.processHTMLClosingTag(w, n, entering)
 }
 
-func (h *renderHook) processHTMLOpeningTag(
+func (r *Renderer) processHTMLOpeningTag(
 	w io.Writer,
 	n *ast.HTMLSpan,
 	entering bool,
 ) ast.WalkStatus {
 	tag, err := parseTag(n.Literal)
 	if err != nil {
-		h.err = err
+		r.state.err = err
 		return ast.Terminate
 	}
 
 	switch tag.Data {
 	case "img":
-		if !h.lazyImageLoading {
+		if !r.lazyImageLoading {
 			break
 		}
 
 		setTagAttr(tag, "loading", "lazy")
 		if v, err := renderTag(tag); err != nil {
-			h.err = err
+			r.state.err = err
 			return ast.Terminate
 		} else {
 			n.Literal = v
@@ -246,13 +261,13 @@ func (h *renderHook) processHTMLOpeningTag(
 	case "ins":
 		switch getTagAttr(tag, "type") {
 		case "book_bib":
-			h.tagBufStack = append(h.tagBufStack, &htmlTagBuf{
-				closingTag: htmlClosingTagIns,
-				fn: func(b *htmlTagBuf) ast.WalkStatus {
+			r.state.htmlTagStack.push(
+				htmlClosingTagIns,
+				func(b *htmlTag) ast.WalkStatus {
 					// Content inside ins tag is ignored.
 					bookBibliography(
 						w,
-						h.palette,
+						r.palette,
 						getTagAttr(tag, "title"),
 						getTagAttr(tag, "cover"),
 						getTagAttr(tag, "link"),
@@ -260,7 +275,7 @@ func (h *renderHook) processHTMLOpeningTag(
 					)
 					return ast.GoToNext
 				},
-			})
+			)
 
 			return ast.GoToNext
 		}
@@ -271,12 +286,12 @@ func (h *renderHook) processHTMLOpeningTag(
 			break
 		}
 
-		if color, found := h.colorMap[name]; !found {
+		if color, found := r.colorMap[name]; !found {
 			break
 		} else {
-			h.tagBufStack = append(h.tagBufStack, &htmlTagBuf{
-				closingTag: htmlClosingTagMark,
-				fn: func(b *htmlTagBuf) ast.WalkStatus {
+			r.state.htmlTagStack.push(
+				htmlClosingTagMark,
+				func(b *htmlTag) ast.WalkStatus {
 					content := b.buf.String()
 					switch val {
 					case "baike", "baidu":
@@ -287,30 +302,30 @@ func (h *renderHook) processHTMLOpeningTag(
 					highlight(w, content, color)
 					return ast.GoToNext
 				},
-			})
+			)
 		}
 
 		return ast.GoToNext
 	}
 
-	return h.renderNodeDefault(w, n, entering)
+	return r.renderNodeDefault(w, n, entering)
 }
 
-func (h *renderHook) processHTMLClosingTag(
+func (r *Renderer) processHTMLClosingTag(
 	w io.Writer,
 	n *ast.HTMLSpan,
 	entering bool,
 ) ast.WalkStatus {
-	if len(h.tagBufStack) == 0 {
-		return h.renderNodeDefault(w, n, entering)
+	if r.state.htmlTagStack.empty() {
+		return r.renderNodeDefault(w, n, entering)
 	}
 
-	tb := h.tagBufStack[len(h.tagBufStack)-1]
-	if !bytes.Equal(n.Literal, tb.closingTag) {
-		return h.renderNodeDefault(w, n, entering)
+	top := r.state.htmlTagStack.top()
+	if !bytes.Equal(n.Literal, top.closingTag) {
+		return r.renderNodeDefault(w, n, entering)
 	}
 
-	h.tagBufStack = h.tagBufStack[:len(h.tagBufStack)-1]
+	r.state.htmlTagStack.pop()
 
-	return tb.close()
+	return top.close()
 }

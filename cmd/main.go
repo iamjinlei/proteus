@@ -73,6 +73,7 @@ func main() {
 			refQueue = append(refQueue, path)
 		}
 
+		mdCnt := 0
 		dirSeen := map[string]bool{}
 		for len(refQueue) > 0 {
 			// relPath is the path relative to the source repo dir.
@@ -128,7 +129,7 @@ func main() {
 				}
 
 				relDir := filepath.Dir(relPath)
-				for _, ref := range page.Refs {
+				for _, ref := range page.InternalRefs {
 					// If the link path referenced in the markdown is relative
 					// to the markdown file location, update it to be relative
 					// to the src repo location before pushing into queue.
@@ -139,6 +140,7 @@ func main() {
 				}
 
 				data = page.Html
+				mdCnt++
 			}
 
 			if err := os.WriteFile(dst, data, filePermMode); err != nil {
@@ -162,6 +164,8 @@ func main() {
 				return
 			}
 		}
+
+		fmt.Printf("Total markdown files processed: %v\n", mdCnt)
 	} else {
 		rassets := map[string]string{}
 		for from, to := range cfg.Assets {
