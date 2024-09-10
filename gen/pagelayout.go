@@ -17,7 +17,7 @@ var (
 @media (min-width: 1080px) {
 	.row {
 		display: grid;
-		grid-template-columns: 1fr 2fr 1fr;
+		grid-template-columns: 1fr 960px 1fr;
 		font-size: 1.2em;
 	}
 }
