@@ -22,11 +22,16 @@ const (
 )
 
 type Styles struct {
+	Code      string
 	CodeBlock string
 }
 
 var (
 	defaultStyles = Styles{
+		Code: fmt.Sprintf(
+			"padding-left:0.3em;padding-right:0.3em;background-color:%v;",
+			color.LightGray,
+		),
 		CodeBlock: fmt.Sprintf(
 			"padding:0.1em 1.5em;background-color:%v;",
 			color.LightGray,
@@ -79,7 +84,7 @@ type renderState struct {
 }
 
 func (r *Renderer) Render(root ast.Node) (*Doc, error) {
-	flags := html.CommonFlags | html.HrefTargetBlank
+	flags := html.CommonFlags
 	if r.lazyImageLoading {
 		flags |= html.LazyLoadImages
 	}
@@ -122,7 +127,7 @@ func (r *Renderer) render(
 		return ast.GoToNext, renderNode
 	}
 
-	if false {
+	if true {
 		name := reflect.TypeOf(n).String()
 		if strings.Contains(name, "ListItem") ||
 			strings.Contains(name, "Text") ||
@@ -158,6 +163,9 @@ func (r *Renderer) render(
 		}
 
 		r.state.ht.add(v.Level, v.HeadingID, string(v.Children[0].(*ast.Text).Literal))
+
+	case *ast.Code:
+		return r.renderCode(w, v, entering), renderSkip
 
 	case *ast.CodeBlock:
 		return r.renderCodeBlock(w, v, entering), renderSkip
@@ -227,6 +235,17 @@ func (r *Renderer) renderNodeDefault(
 	s := r.state.renderer.RenderNode(w, n, entering)
 	r.state.reentry = false
 	return s
+}
+
+func (r *Renderer) renderCode(
+	w io.Writer,
+	n *ast.Code,
+	entering bool,
+) ast.WalkStatus {
+	fmt.Fprintf(w, `<span style="%v">`, defaultStyles.Code)
+	r.state.renderer.Code(w, n)
+	fmt.Fprintf(w, "</span>")
+	return ast.GoToNext
 }
 
 func (r *Renderer) renderCodeBlock(
