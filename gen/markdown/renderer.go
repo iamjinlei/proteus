@@ -178,6 +178,14 @@ func (r *Renderer) render(
 			break
 		}
 
+		if v.Attribute == nil {
+			v.Attribute = &ast.Attribute{}
+		}
+		if v.Attribute.Attrs == nil {
+			v.Attribute.Attrs = map[string][]byte{}
+		}
+		v.Attribute.Attrs["style"] = []byte("width:100%;")
+
 		ref := string(v.Destination)
 		if !isExternalLink(ref) {
 			r.state.internalRefs = append(r.state.internalRefs, ref)
