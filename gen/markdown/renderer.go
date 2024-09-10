@@ -192,7 +192,7 @@ func (r *Renderer) render(
 		if v.Attribute.Attrs == nil {
 			v.Attribute.Attrs = map[string][]byte{}
 		}
-		v.Attribute.Attrs["style"] = []byte("width:100%;margin-top:0.5em;margin-bottom:0.5em;")
+		v.Attribute.Attrs["style"] = []byte("width:100%;")
 
 		ref := string(v.Destination)
 		if !isExternalLink(ref) {
@@ -288,13 +288,6 @@ func (r *Renderer) processHTMLOpeningTag(
 		}
 
 		setTagAttr(tag, "loading", "lazy")
-		style := parseStyle(getTagAttr(tag, "style"))
-		if style["margin-top"] == "" && style["margin-bottom"] == "" {
-			style["margin-top"] = "0.5em"
-			style["margin-bottom"] = "0.5em"
-			setTagAttr(tag, "style", encodeStyle(style))
-		}
-
 		if v, err := renderTag(tag); err != nil {
 			r.state.err = err
 			return ast.Terminate
