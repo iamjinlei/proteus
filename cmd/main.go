@@ -69,7 +69,7 @@ func main() {
 		refQueue := []string{
 			cfg.Entry,
 		}
-		for path, _ := range cfg.Assets {
+		for path := range cfg.Assets {
 			refQueue = append(refQueue, path)
 		}
 

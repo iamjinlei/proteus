@@ -127,7 +127,7 @@ func (r *Renderer) render(
 		return ast.GoToNext, renderNode
 	}
 
-	if true {
+	if false {
 		name := reflect.TypeOf(n).String()
 		if strings.Contains(name, "ListItem") ||
 			strings.Contains(name, "Text") ||
@@ -301,12 +301,17 @@ func (r *Renderer) processHTMLOpeningTag(
 			r.state.htmlTagStack.push(
 				htmlClosingTagIns,
 				func(b *htmlTag) ast.WalkStatus {
+					coverRef := getTagAttr(tag, "cover")
+					if !isExternalLink(coverRef) {
+						r.state.internalRefs = append(r.state.internalRefs, coverRef)
+					}
+
 					// Content inside ins tag is ignored.
 					bookBibliography(
 						w,
 						r.palette,
 						getTagAttr(tag, "title"),
-						getTagAttr(tag, "cover"),
+						coverRef,
 						getTagAttr(tag, "link"),
 						getTagAttr(tag, "author"),
 					)
