@@ -24,6 +24,7 @@ const (
 type Renderer struct {
 	palette               color.Palette
 	colorMap              map[string]color.Color
+	colorNames            map[string]bool
 	internalRefHtmlSuffix string
 	lazyImageLoading      bool
 	state                 *renderState
@@ -42,14 +43,23 @@ func NewRenderer(
 	}
 
 	cm["name"] = palette.HighlighterRed
-	cm["b"] = palette.HighlighterGreen
-	cm["c"] = palette.HighlighterBlue
-	cm["d"] = palette.HighlighterYellow
-	cm["e"] = palette.HighlighterOrange
+	cm["hl_red"] = palette.HighlighterRed
+	cm["hl_green"] = palette.HighlighterGreen
+	cm["hl_blue"] = palette.HighlighterBlue
+	cm["hl_yellow"] = palette.HighlighterYellow
+	cm["hl"] = palette.HighlighterYellow
+	cm["hl_orange"] = palette.HighlighterOrange
+	cn := map[string]bool{}
+	for name := range cm {
+		if strings.HasPrefix(name, "hl_") {
+			cn[name[3:]] = true
+		}
+	}
 
 	return &Renderer{
 		palette:               palette,
 		colorMap:              cm,
+		colorNames:            cn,
 		internalRefHtmlSuffix: internalRefHtmlSuffix,
 		lazyImageLoading:      lazyImageLoading,
 	}
@@ -318,20 +328,25 @@ func (r *Renderer) processHTMLOpeningTag(
 			r.state.htmlTagStack.push(
 				htmlClosingTagMark,
 				func(b *htmlTag) ast.WalkStatus {
+					// Highlight keywords
 					content := b.buf.String()
-					id := ""
 					if keyword.ValidType(kind) {
-						id = hash20([]byte(content))
+						id := hash20([]byte(content))
 						r.state.kws.add(keyword.Type(kind), content, id)
-					}
 
-					switch val {
-					case "baike", "baidu":
-						content = link(content, baiduBaike(content))
-					case "wikicn":
-						content = link(content, wikipediaCn(content))
+						switch val {
+						case "baike", "baidu":
+							content = link(content, baiduBaike(content))
+						case "wikicn":
+							content = link(content, wikipediaCn(content))
+						}
+						bgColor(w, id, content, color)
+					} else if kind == "hl" ||
+						(strings.HasPrefix(kind, "hl_") && r.colorNames[kind[3:]]) {
+						bgColor(w, "", content, color)
+					} else if r.colorNames[kind] {
+						fgColor(w, "", content, color)
 					}
-					highlight(w, id, content, color)
 
 					return ast.GoToNext
 				},
