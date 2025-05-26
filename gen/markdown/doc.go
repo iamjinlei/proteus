@@ -7,6 +7,7 @@ import "html/template"
 // always receives the full path relative to the server root.
 type Doc struct {
 	Html         template.HTML
+	Css          template.CSS
 	InternalRefs []string
 	Headings     []*Heading
 	Keywords     *Keywords

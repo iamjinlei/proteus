@@ -84,6 +84,7 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 			pCfg.nav(),
 			&HtmlComponent{
 				Html: mdDoc.Html,
+				Css:  mdDoc.Css,
 			},
 			renderComponent(pCfg.leftPane(), mdDoc, h.cfg.Palette),
 			renderComponent(pCfg.rightPane(), mdDoc, h.cfg.Palette),

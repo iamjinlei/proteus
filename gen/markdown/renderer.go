@@ -21,24 +21,6 @@ const (
 	renderNode = false
 )
 
-type Styles struct {
-	Code      string
-	CodeBlock string
-}
-
-var (
-	defaultStyles = Styles{
-		Code: fmt.Sprintf(
-			"padding-left:0.3em;padding-right:0.3em;background-color:%v;",
-			color.LightGray,
-		),
-		CodeBlock: fmt.Sprintf(
-			"padding:0.1em 1.5em;background-color:%v;",
-			color.LightGray,
-		),
-	}
-)
-
 type Renderer struct {
 	palette               color.Palette
 	colorMap              map[string]color.Color
@@ -88,6 +70,7 @@ func (r *Renderer) Render(root ast.Node) (*Doc, error) {
 	if r.lazyImageLoading {
 		flags |= html.LazyLoadImages
 	}
+	flags |= html.CompletePage
 
 	r.state = &renderState{
 		renderer: html.NewRenderer(
@@ -112,6 +95,7 @@ func (r *Renderer) Render(root ast.Node) (*Doc, error) {
 
 	return &Doc{
 		Html:         template.HTML(data),
+		Css:          template.CSS(defaultDocCss),
 		InternalRefs: rs.internalRefs,
 		Headings:     rs.ht.getHeadings(),
 		Keywords:     rs.kws,
@@ -242,7 +226,7 @@ func (r *Renderer) renderCode(
 	n *ast.Code,
 	entering bool,
 ) ast.WalkStatus {
-	fmt.Fprintf(w, `<span style="%v">`, defaultStyles.Code)
+	fmt.Fprintf(w, `<span class="codecls">`)
 	r.state.renderer.Code(w, n)
 	fmt.Fprintf(w, "</span>")
 	return ast.GoToNext
@@ -253,7 +237,7 @@ func (r *Renderer) renderCodeBlock(
 	n *ast.CodeBlock,
 	entering bool,
 ) ast.WalkStatus {
-	fmt.Fprintf(w, `<div style="%v">`, defaultStyles.CodeBlock)
+	fmt.Fprintf(w, `<div class="codeblockcls">`)
 	r.state.renderer.CodeBlock(w, n)
 	fmt.Fprintf(w, "</div>")
 	return ast.GoToNext
