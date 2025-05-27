@@ -47,4 +47,10 @@ Check out the [demo docs](https://iamjinlei.github.io/proteus/docs/) generated f
 
 ## Example Screenshot
 
-![sc](example/screenshot.png)
+* Instructions
+
+![sc](example/screenshot0.png)
+
+* Book summary
+
+![sc](example/screenshot1.png)
