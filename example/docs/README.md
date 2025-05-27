@@ -11,13 +11,13 @@ Entry page is defined in config.yaml.
 * Debug run:
 
 ```
-go run ./cmd/ -s example/src/
+go run ./cmd/ -s example/docs/
 ```
 
 * Generate static pages:
 
 ```
-go run ./cmd/ -s example/src/ -d example/dst/ -g
+go run ./cmd/ -s example/docs/ -d docs/ -g
 ```
 
 ## Feature demo
