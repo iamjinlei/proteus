@@ -9,3 +9,7 @@ func baiduBaike(target string) string {
 func wikipediaCn(target string) string {
 	return fmt.Sprintf("https://zh.wikipedia.org/zh-cn/%s", target)
 }
+
+func wikipedia(target string) string {
+	return fmt.Sprintf("https://en.wikipedia.org/wiki/%s", target)
+}

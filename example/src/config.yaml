@@ -1,0 +1,6 @@
+domain: yourodmain.com
+enable_sitemap: true
+entry: README.md
+assets:
+  assets/robots.txt: robots.txt
+  assets/favicon.ico: favicon.ico

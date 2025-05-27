@@ -339,6 +339,8 @@ func (r *Renderer) processHTMLOpeningTag(
 							content = link(content, baiduBaike(content))
 						case "wikicn":
 							content = link(content, wikipediaCn(content))
+						case "wiki":
+							content = link(content, wikipedia(content))
 						}
 						bgColor(w, id, content, color)
 					} else if kind == "hl" ||
