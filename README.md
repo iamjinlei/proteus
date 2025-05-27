@@ -44,3 +44,7 @@ go run ./cmd/ -s [path to source markdown root] -d [path to destination root] -g
 ## Feature Demo
 
 Check out the [demo docs](https://iamjinlei.github.io/proteus/docs/) generated from example/docs
+
+## Example Screenshot
+
+![sc](example/screenshot.png)
