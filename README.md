@@ -1,4 +1,12 @@
-# Why Another Static Site Generator?
+<h1 align="center">Proteus</h1>
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/iamjinlei/proteus)](https://goreportcard.com/report/github.com/iamjinlei/proteus)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Go Reference](https://pkg.go.dev/badge/github.com/iamjinlei/proteus.svg)](https://pkg.go.dev/github.com/iamjinlei/proteus)
+
+
+
+## Why Another Static Site Generator?
 
 Often times, I'd like to take notes and make them available on the web.
 Markdown is an ideal choice for 2 reasons:
