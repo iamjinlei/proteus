@@ -9,9 +9,10 @@
 ## Why Another Static Site Generator?
 
 Often times, I'd like to take notes and make them available on the web.
-Markdown is an ideal choice for 2 reasons:
+Markdown is an ideal choice for 3 reasons:
 * Works with any text editor.
 * Allows nice formatting with some custom tweaks.
+* Free hosting on github pages.
 
 Yet there are many mature markdown to static site generators.
 I tried and steped back from those choices because:
