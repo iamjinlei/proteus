@@ -171,7 +171,6 @@ func (r *Renderer) render(
 
 		ref := string(v.Destination)
 		if !isExternalLink(ref) {
-			r.state.internalRefs = append(r.state.internalRefs, ref)
 			// suport anchor
 			anchorParts := strings.Split(ref, "#")
 			if len(anchorParts) == 2 {
@@ -183,6 +182,7 @@ func (r *Renderer) render(
 					anchor,
 				)
 			} else {
+				r.state.internalRefs = append(r.state.internalRefs, ref)
 				ref = ref + r.internalRefHtmlSuffix
 			}
 			v.Destination = []byte(ref)

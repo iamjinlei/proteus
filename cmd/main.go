@@ -79,10 +79,10 @@ func main() {
 			// relPath is the path relative to the source repo dir.
 			relPath := refQueue[0]
 			refQueue = refQueue[1:]
-			isMarkdown := strings.HasSuffix(relPath, mdSuffix)
 
 			src := filepath.Join(srcDir, relPath)
 			dst := filepath.Join(dstDir, relPath)
+			isMarkdown := strings.HasSuffix(relPath, mdSuffix)
 			switch relPath {
 			case cfg.Entry:
 				dst = filepath.Join(dstDir, "index.html")
