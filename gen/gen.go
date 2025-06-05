@@ -81,7 +81,7 @@ func (h *Html) Gen(relPath string, src []byte) (*Page, error) {
 			h.cfg.Domain,
 			relPath,
 			pCfg.header(),
-			pCfg.nav(),
+			pCfg.nav(h.cfg.InternalRefHtmlSuffix),
 			&HtmlComponent{
 				Html: mdDoc.Html,
 				Css:  mdDoc.Css,

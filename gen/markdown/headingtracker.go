@@ -79,5 +79,9 @@ func (t *headingTracker) getHeadings() []*Heading {
 		parentList[len(parentList)-1].Children = t.queue[i]
 	}
 
+	if len(t.queue) == 0 {
+		return nil
+	}
+
 	return t.queue[0]
 }

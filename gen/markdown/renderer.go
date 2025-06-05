@@ -172,7 +172,20 @@ func (r *Renderer) render(
 		ref := string(v.Destination)
 		if !isExternalLink(ref) {
 			r.state.internalRefs = append(r.state.internalRefs, ref)
-			v.Destination = []byte(ref + r.internalRefHtmlSuffix)
+			// suport anchor
+			anchorParts := strings.Split(ref, "#")
+			if len(anchorParts) == 2 {
+				anchor := strings.ToLower(anchorParts[1])
+				anchor = strings.Replace(anchor, " ", "-", -1)
+				ref = fmt.Sprintf("%s%s#%s",
+					anchorParts[0],
+					r.internalRefHtmlSuffix,
+					anchor,
+				)
+			} else {
+				ref = ref + r.internalRefHtmlSuffix
+			}
+			v.Destination = []byte(ref)
 		}
 
 	case *ast.Image:
@@ -186,7 +199,7 @@ func (r *Renderer) render(
 		if v.Attribute.Attrs == nil {
 			v.Attribute.Attrs = map[string][]byte{}
 		}
-		v.Attribute.Attrs["style"] = []byte("width:100%;")
+		v.Attribute.Attrs["style"] = []byte("width:80%;display:block;margin:auto;")
 
 		ref := string(v.Destination)
 		if !isExternalLink(ref) {

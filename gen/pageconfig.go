@@ -105,7 +105,7 @@ func (c *pageConfig) header() *HtmlComponent {
 	}
 }
 
-func (c *pageConfig) nav() *HtmlComponent {
+func (c *pageConfig) nav(internalRefHtmlSuffix string) *HtmlComponent {
 	if c.m["nav"] == nil {
 		return &HtmlComponent{
 			Html: template.HTML(""),
@@ -135,7 +135,11 @@ func (c *pageConfig) nav() *HtmlComponent {
 			}
 		}
 
-		links = append(links, fmt.Sprintf(`<a href="%s">%s</a>`, kv[1], kv[0]))
+		ref := kv[1]
+		if ref[len(ref)-1] != '/' && !strings.HasSuffix(ref, internalRefHtmlSuffix) {
+			ref = ref + internalRefHtmlSuffix
+		}
+		links = append(links, fmt.Sprintf(`<a href="%s">%s</a>`, ref, kv[0]))
 	}
 
 	return &HtmlComponent{
