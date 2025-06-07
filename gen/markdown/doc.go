@@ -15,7 +15,15 @@ type Doc struct {
 
 type Heading struct {
 	Level    int
-	ID       string
+	ID       string // Original heading ID
+	ParentID string // Original parent heading ID
 	Name     string
 	Children []*Heading
+}
+
+func (h *Heading) GetHtmlDomID() string {
+	if h.ParentID == "" {
+		return h.ID
+	}
+	return h.ParentID + "_" + h.ID
 }

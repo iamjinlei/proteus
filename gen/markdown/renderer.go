@@ -156,7 +156,8 @@ func (r *Renderer) render(
 			break
 		}
 
-		r.state.ht.add(v.Level, v.HeadingID, string(v.Children[0].(*ast.Text).Literal))
+		h := r.state.ht.add(v.Level, v.HeadingID, string(v.Children[0].(*ast.Text).Literal))
+		v.HeadingID = h.GetHtmlDomID()
 
 	case *ast.Code:
 		return r.renderCode(w, v, entering), renderSkip

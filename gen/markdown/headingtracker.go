@@ -8,7 +8,7 @@ func newHeadingTracker() *headingTracker {
 	return &headingTracker{}
 }
 
-func (t *headingTracker) add(level int, id, name string) {
+func (t *headingTracker) add(level int, id, name string) *Heading {
 	h := &Heading{
 		Level: level,
 		ID:    id,
@@ -27,7 +27,7 @@ func (t *headingTracker) add(level int, id, name string) {
 		}
 		// The first heading inserted.
 		t.queue = append(t.queue, []*Heading{h})
-		return
+		return h
 	}
 
 	currList := t.queue[len(t.queue)-1]
@@ -58,6 +58,25 @@ func (t *headingTracker) add(level int, id, name string) {
 		currList := t.queue[len(t.queue)-1]
 		t.queue[len(t.queue)-1] = append(currList, h)
 	}
+
+	p := t.getCurrNonEmptyParent(level)
+	if p != nil {
+		h.ParentID = p.ID
+	}
+
+	return h
+}
+
+func (t *headingTracker) getCurrNonEmptyParent(level int) *Heading {
+	for i := len(t.queue) - 1; i >= 0; i-- {
+		list := t.queue[i]
+		lastHeading := list[len(list)-1]
+		if lastHeading.Level < level && lastHeading.ID != "" {
+			return lastHeading
+		}
+	}
+
+	return nil
 }
 
 func (t *headingTracker) getHeadings() []*Heading {

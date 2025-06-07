@@ -92,7 +92,7 @@ func renderHeadingList(
 		html += fmt.Sprintf(
 			`<li class="toc%d_li"><a href="#%s">%s</a>`,
 			depth,
-			h.ID,
+			h.GetHtmlDomID(),
 			h.Name,
 		)
 		if len(h.Children) > 0 && depth+1 < maxDepth {
