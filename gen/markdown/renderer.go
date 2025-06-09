@@ -303,6 +303,11 @@ func (r *Renderer) processHTMLOpeningTag(
 			n.Literal = v
 		}
 
+		imgRef := getTagAttr(tag, "src")
+		if !isExternalLink(imgRef) {
+			r.state.internalRefs = append(r.state.internalRefs, imgRef)
+		}
+
 	case "ins":
 		switch getTagAttr(tag, "type") {
 		case "book_bib":
