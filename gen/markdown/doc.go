@@ -22,8 +22,5 @@ type Heading struct {
 }
 
 func (h *Heading) GetHtmlDomID() string {
-	if h.ParentID == "" {
-		return h.ID
-	}
-	return h.ParentID + "_" + h.ID
+	return h.ID
 }
