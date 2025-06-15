@@ -74,6 +74,9 @@ func main() {
 		}
 
 		mdCnt := 0
+		resourceCnt := 0
+		skipCnt := 0
+		srcSeen := map[string]bool{}
 		dirSeen := map[string]bool{}
 		for len(refQueue) > 0 {
 			// relPath is the path relative to the source repo dir.
@@ -81,6 +84,11 @@ func main() {
 			refQueue = refQueue[1:]
 
 			src := filepath.Join(srcDir, relPath)
+			if srcSeen[src] {
+				continue
+			}
+			srcSeen[src] = true
+
 			dst := filepath.Join(dstDir, relPath)
 			isMarkdown := strings.HasSuffix(relPath, mdSuffix)
 			switch relPath {
@@ -101,6 +109,8 @@ func main() {
 			if isMarkdown {
 				sm.Add(relPath)
 			} else if !*forceFlag && !updateRequired(src, dst) {
+				fmt.Printf("Skipping %v\n", src)
+				skipCnt++
 				continue
 			}
 
@@ -141,6 +151,8 @@ func main() {
 
 				data = page.Html
 				mdCnt++
+			} else {
+				resourceCnt++
 			}
 
 			if err := os.WriteFile(dst, data, filePermMode); err != nil {
@@ -165,7 +177,9 @@ func main() {
 			}
 		}
 
-		fmt.Printf("Total markdown files processed: %v\n", mdCnt)
+		fmt.Printf("Markdown files processed: %v\n", mdCnt)
+		fmt.Printf("Resource files processed: %v\n", resourceCnt)
+		fmt.Printf("Files skipped (no change): %v\n", skipCnt)
 	} else {
 		rassets := map[string]string{}
 		for from, to := range cfg.Assets {
