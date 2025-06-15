@@ -175,16 +175,20 @@ func (r *Renderer) render(
 			// suport anchor
 			anchorParts := strings.Split(ref, "#")
 			if len(anchorParts) == 2 {
+				ref = anchorParts[0]
+				r.state.internalRefs = append(r.state.internalRefs, ref)
+				if strings.HasSuffix(ref, ".md") {
+					ref = ref + r.internalRefHtmlSuffix
+				}
+
 				anchor := strings.ToLower(anchorParts[1])
 				anchor = strings.Replace(anchor, " ", "-", -1)
-				ref = fmt.Sprintf("%s%s#%s",
-					anchorParts[0],
-					r.internalRefHtmlSuffix,
-					anchor,
-				)
+				ref = fmt.Sprintf("%s#%s", ref, anchor)
 			} else {
 				r.state.internalRefs = append(r.state.internalRefs, ref)
-				ref = ref + r.internalRefHtmlSuffix
+				if strings.HasSuffix(ref, ".md") {
+					ref = ref + r.internalRefHtmlSuffix
+				}
 			}
 			v.Destination = []byte(ref)
 		}
